@@ -1,40 +1,41 @@
 const express = require('express');
+const path = require('path');
 const { Telegraf, Markup } = require('telegraf');
 
-// ===== ВЫВОДИМ ЛОГИ ДЛЯ ДИАГНОСТИКИ =====
 console.log('🚀 Запуск сервера...');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', process.env.PORT);
 
-// ===== ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ =====
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const WEB_APP_URL = process.env.WEB_APP_URL || 'https://example.com';
 
-// ===== ПРОВЕРЯЕМ ТОКЕН =====
 if (!BOT_TOKEN) {
     console.error('❌ ОШИБКА: BOT_TOKEN не задан в переменных окружения!');
-    // Не выходим сразу, а просто не запускаем бота
 } else {
     console.log('✅ BOT_TOKEN найден');
 }
 
-// ===== СОЗДАЁМ EXPRESS ПРИЛОЖЕНИЕ =====
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-app.get('/', (req, res) => {
-    res.send('Бот запускается, проверь логи. Если видишь эту страницу — сервер работает.');
+// Раздаём статические файлы из папки public
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Если файл не найден (например, запросили / или /something) — отдаём index.html
+app.use((req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ===== ЗАПУСКАЕМ ВЕБ-СЕРВЕР =====
-const PORT = process.env.PORT || 3000;
+// Запускаем сервер
 const server = app.listen(PORT, () => {
     console.log(`🌍 Веб-сервер слушает порт ${PORT}`);
 });
+
 server.on('error', (err) => {
     console.error('❌ Ошибка веб-сервера:', err);
 });
 
-// ===== БОТ (запускаем только если есть токен) =====
+// ===== БОТ =====
 if (BOT_TOKEN) {
     const bot = new Telegraf(BOT_TOKEN);
 
@@ -48,19 +49,13 @@ if (BOT_TOKEN) {
         ctx.reply('Спасибо, данные получены!');
     });
 
-    // Запускаем бота с обработкой ошибок
     bot.launch()
-        .then(() => {
-            console.log('🤖 Бот успешно запущен');
-        })
-        .catch((err) => {
-            console.error('❌ Ошибка запуска бота:', err);
-        });
+        .then(() => console.log('🤖 Бот успешно запущен'))
+        .catch((err) => console.error('❌ Ошибка запуска бота:', err));
 } else {
     console.log('⚠️ Бот не запущен, так как BOT_TOKEN не задан');
 }
 
-// Корректное завершение
 process.once('SIGINT', () => {
     if (BOT_TOKEN) bot.stop('SIGINT');
     process.exit(0);
