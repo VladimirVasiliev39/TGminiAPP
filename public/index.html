@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой магазин</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: system-ui, sans-serif; text-align: center; padding: 20px; }
+        button { padding: 12px 24px; font-size: 18px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🛍 Добро пожаловать в магазин!</h1>
+    <p>Товары появятся здесь совсем скоро.</p>
+    <button id="buyBtn">Тестовая кнопка</button>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        document.getElementById('buyBtn').onclick = () => {
+            tg.sendData('Тестовый заказ');
+        };
+    </script>
+</body>
+</html>
