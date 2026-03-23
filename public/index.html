@@ -2,38 +2,466 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Тест отправки</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Мой магазин</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+        .header {
+            padding: 16px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-bottom: 1px solid var(--tg-theme-hint-color, #ccc);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .search {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            background: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+        }
+        .categories, .brands {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+            padding-bottom: 8px;
+            margin-top: 5px;
+        }
+        .category-btn, .brand-btn {
+            background: var(--tg-theme-secondary-bg-color, #e9ecef);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+            color: var(--tg-theme-text-color, #000);
+        }
+        .category-btn.active, .brand-btn.active {
+            background: var(--tg-theme-button-color, #2e7dff);
+            color: var(--tg-theme-button-text-color, #fff);
+        }
+        .products {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            padding: 16px;
+        }
+        .product-card {
+            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .product-image {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #ddd;
+            background-size: cover;
+            background-position: center;
+        }
+        .product-info {
+            padding: 12px;
+        }
+        .product-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .product-price {
+            color: var(--tg-theme-button-color, #2e7dff);
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .variant-select {
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            background: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+        }
+        .add-to-cart {
+            background: var(--tg-theme-button-color, #2e7dff);
+            color: var(--tg-theme-button-text-color, #fff);
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .cart-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--tg-theme-button-color, #2e7dff);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: red;
+            color: white;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cart-modal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--tg-theme-bg-color, white);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            padding: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+        .cart-modal.open {
+            transform: translateY(0);
+        }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .cart-total {
+            font-weight: bold;
+            margin-top: 10px;
+            text-align: right;
+        }
+        .close-cart {
+            background: none;
+            border: none;
+            font-size: 24px;
+            float: right;
+            cursor: pointer;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .brands-section, .products-section {
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <button id="sendMsg">Отправить сообщение</button>
+    <div class="header">
+        <input type="text" id="search" class="search" placeholder="Поиск товаров...">
+        <div id="categories" class="categories"></div>
+    </div>
+    <div id="brandsContainer" class="brands-section"></div>
+    <div id="productsContainer" class="products-section"></div>
+    <button id="cartButton" class="cart-button">🛒<span id="cartCount" class="cart-badge">0</span></button>
+    <div id="cartModal" class="cart-modal">
+        <button class="close-cart" id="closeCart">✕</button>
+        <h3>Корзина</h3>
+        <div id="cartItems"></div>
+        <div class="cart-total" id="cartTotal"></div>
+        <button id="checkoutBtn" style="width:100%; margin-top: 15px; padding:12px; background:#2e7dff; color:white; border:none; border-radius:10px;">Оформить заказ</button>
+    </div>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
+        tg.expand();
 
-        document.getElementById('sendMsg').onclick = async () => {
-            const chatId = tg.initDataUnsafe?.user?.id;
-            if (!chatId) {
-                alert('Нет chatId');
+        let categories = [];
+        let brands = [];
+        let products = [];
+        let variants = [];
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+        let selectedCategoryId = null;
+        let selectedBrandId = null;
+
+        const updateCartUI = () => {
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById('cartCount').innerText = count;
+            localStorage.setItem('cart', JSON.stringify(cart));
+        };
+
+        const renderCartModal = () => {
+            const container = document.getElementById('cartItems');
+            if (cart.length === 0) {
+                container.innerHTML = '<p>Корзина пуста</p>';
+                document.getElementById('cartTotal').innerText = '';
                 return;
             }
+            let html = '';
+            let total = 0;
+            cart.forEach((item, idx) => {
+                total += item.price * item.quantity;
+                html += `
+                    <div class="cart-item">
+                        <div><strong>${item.productName}</strong> (${item.variantName})<br>x${item.quantity}</div>
+                        <div>${item.price * item.quantity} ₽ <button data-idx="${idx}" class="remove-item">❌</button></div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            document.getElementById('cartTotal').innerHTML = `Итого: ${total} ₽`;
+            document.querySelectorAll('.remove-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(btn.dataset.idx);
+                    cart.splice(idx, 1);
+                    updateCartUI();
+                    renderCartModal();
+                });
+            });
+        };
+
+        const addToCart = (product, variant, quantity = 1) => {
+            const existingIndex = cart.findIndex(item => item.variantId === variant.id);
+            if (existingIndex !== -1) {
+                cart[existingIndex].quantity += quantity;
+            } else {
+                cart.push({
+                    productId: product.id,
+                    productName: product.name,
+                    variantId: variant.id,
+                    variantName: variant.name,
+                    price: variant.price,
+                    quantity: quantity
+                });
+            }
+            updateCartUI();
+            renderCartModal();
+            tg.showPopup({ title: 'Добавлено', message: `${product.name} (${variant.name}) добавлен в корзину` });
+        };
+
+        // Загрузка категорий
+        const loadCategories = async () => {
+            const res = await fetch('/api/categories');
+            categories = await res.json();
+            const container = document.getElementById('categories');
+            let html = '<button class="category-btn" data-id="">Все</button>';
+            categories.forEach(cat => {
+                html += `<button class="category-btn" data-id="${cat.id}">${cat.icon || ''} ${cat.name}</button>`;
+            });
+            container.innerHTML = html;
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.id ? parseInt(btn.dataset.id) : null;
+                    selectedCategoryId = id;
+                    selectedBrandId = null;
+                    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    loadBrands(id);
+                });
+            });
+        };
+
+        // Загрузка брендов по категории
+        const loadBrands = async (categoryId) => {
+            const url = categoryId ? `/api/brands?category_id=${categoryId}` : '/api/brands';
+            const res = await fetch(url);
+            brands = await res.json();
+            const container = document.getElementById('brandsContainer');
+            if (brands.length === 0) {
+                container.innerHTML = '<div class="loading">Нет брендов в этой категории</div>';
+                loadProducts(null);
+                return;
+            }
+            let html = '<div class="brands"><button class="brand-btn" data-id="">Все бренды</button>';
+            brands.forEach(b => {
+                html += `<button class="brand-btn" data-id="${b.id}">${b.name}</button>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+            document.querySelectorAll('.brand-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.id ? parseInt(btn.dataset.id) : null;
+                    selectedBrandId = id;
+                    document.querySelectorAll('.brand-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    loadProducts(id);
+                });
+            });
+            loadProducts(null);
+        };
+
+        // Загрузка товаров по бренду
+        const loadProducts = async (brandId) => {
+            const url = brandId ? `/api/products?brand_id=${brandId}` : '/api/products';
+            const res = await fetch(url);
+            products = await res.json();
+            const variantsRes = await fetch('/api/variants');
+            variants = await variantsRes.json();
+
+            const container = document.getElementById('productsContainer');
+            if (products.length === 0) {
+                container.innerHTML = '<div class="loading">Нет товаров</div>';
+                return;
+            }
+            let html = '<div class="products">';
+            products.forEach(p => {
+                const productVariants = variants.filter(v => v.product_id === p.id);
+                if (productVariants.length === 0) return;
+                html += `
+                    <div class="product-card">
+                        <div class="product-image" style="background-image: url('${p.image || '/images/placeholder.jpg'}')"></div>
+                        <div class="product-info">
+                            <div class="product-name">${p.name}</div>
+                            <select class="variant-select" data-product-id="${p.id}">
+                                ${productVariants.map(v => `<option value="${v.id}" data-price="${v.price}">${v.name} — ${v.price} ₽</option>`).join('')}
+                            </select>
+                            <button class="add-to-cart" data-product-id="${p.id}">В корзину</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+
+            document.querySelectorAll('.add-to-cart').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const productId = parseInt(btn.dataset.productId);
+                    const product = products.find(p => p.id === productId);
+                    const select = btn.closest('.product-card').querySelector('.variant-select');
+                    const variantId = parseInt(select.value);
+                    const variant = variants.find(v => v.id === variantId);
+                    addToCart(product, variant, 1);
+                });
+            });
+        };
+
+        // Поиск
+        const searchInput = document.getElementById('search');
+        searchInput.addEventListener('input', (e) => {
+            const searchText = e.target.value.toLowerCase();
+            const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchText));
+            const container = document.getElementById('productsContainer');
+            if (filteredProducts.length === 0) {
+                container.innerHTML = '<div class="loading">Нет товаров</div>';
+                return;
+            }
+            let html = '<div class="products">';
+            filteredProducts.forEach(p => {
+                const productVariants = variants.filter(v => v.product_id === p.id);
+                if (productVariants.length === 0) return;
+                html += `
+                    <div class="product-card">
+                        <div class="product-image" style="background-image: url('${p.image || '/images/placeholder.jpg'}')"></div>
+                        <div class="product-info">
+                            <div class="product-name">${p.name}</div>
+                            <select class="variant-select" data-product-id="${p.id}">
+                                ${productVariants.map(v => `<option value="${v.id}" data-price="${v.price}">${v.name} — ${v.price} ₽</option>`).join('')}
+                            </select>
+                            <button class="add-to-cart" data-product-id="${p.id}">В корзину</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+            document.querySelectorAll('.add-to-cart').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const productId = parseInt(btn.dataset.productId);
+                    const product = products.find(p => p.id === productId);
+                    const select = btn.closest('.product-card').querySelector('.variant-select');
+                    const variantId = parseInt(select.value);
+                    const variant = variants.find(v => v.id === variantId);
+                    addToCart(product, variant, 1);
+                });
+            });
+        });
+
+        // Корзина
+        updateCartUI();
+        renderCartModal();
+
+        const cartModal = document.getElementById('cartModal');
+        document.getElementById('cartButton').addEventListener('click', () => {
+            renderCartModal();
+            cartModal.classList.add('open');
+        });
+        document.getElementById('closeCart').addEventListener('click', () => {
+            cartModal.classList.remove('open');
+        });
+
+        // Оформление заказа
+        document.getElementById('checkoutBtn').addEventListener('click', async () => {
+            const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            const userId = tg.initDataUnsafe?.user?.id || 0;
+            const orderData = {
+                user_id: userId,
+                items: cart,
+                total: total
+            };
             try {
-                const response = await fetch('/api/send-message', {
+                const orderResponse = await fetch('/api/orders', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chatId, text: 'Тест с телефона' })
+                    body: JSON.stringify(orderData)
                 });
-                const result = await response.json();
-                if (result.ok) {
-                    alert('Сообщение отправлено!');
-                    tg.close();
+                const orderResult = await orderResponse.json();
+                if (orderResult.success) {
+                    // Отправляем уведомление пользователю через бота (fetch)
+                    const msgResponse = await fetch('/api/send-message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chatId: userId,
+                            text: `✅ Заказ №${orderResult.orderId} оформлен на сумму ${total} ₽. Спасибо!`
+                        })
+                    });
+                    const msgResult = await msgResponse.json();
+                    if (msgResult.ok) {
+                        tg.showPopup({ title: 'Заказ оформлен', message: `Номер заказа: ${orderResult.orderId}` });
+                        cart = [];
+                        updateCartUI();
+                        renderCartModal();
+                        cartModal.classList.remove('open');
+                    } else {
+                        tg.showPopup({ title: 'Ошибка', message: 'Заказ сохранён, но не удалось отправить уведомление' });
+                    }
                 } else {
-                    alert('Ошибка: ' + result.error);
+                    tg.showPopup({ title: 'Ошибка', message: 'Не удалось оформить заказ' });
                 }
             } catch (err) {
-                alert('Ошибка fetch: ' + err.message);
+                console.error(err);
+                tg.showPopup({ title: 'Ошибка', message: 'Сетевая ошибка при оформлении заказа' });
             }
-        };
+        });
+
+        // Инициализация
+        loadCategories();
     </script>
 </body>
 </html>
