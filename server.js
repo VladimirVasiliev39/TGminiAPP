@@ -1,44 +1,39 @@
-require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const { Telegraf, Markup } = require('telegraf');
-const db = require('./database'); // предполагается, что database.js экспортирует db
+const db = require('./database');
+require('dotenv').config();
 
 // ===== ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ =====
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const WEB_APP_URL = process.env.WEB_APP_URL || 'https://example.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-const ADMIN_USER_ID = parseInt(process.env.ADMIN_USER_ID) || 0; // твой Telegram ID
- 
+const ADMIN_USER_ID = parseInt(process.env.ADMIN_USER_ID) || 0;
+
 if (!ADMIN_PASSWORD) console.warn('⚠️ ADMIN_PASSWORD не задан, админка будет недоступна');
-if (!ADMIN_USER_ID) console.warn('⚠️ ADMIN_USER_ID не задан, команда /admin будет доступна всем');
 
 // ===== EXPRESS =====
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Сессии
 app.use(session({
     secret: process.env.SESSION_SECRET || 'keyboard cat',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 1 день
+    cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
 
-// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
 function isAuthenticated(req, res, next) {
     if (req.session && req.session.authenticated) return next();
     res.redirect('/admin/login');
 }
 
 // ===== АДМИНКА =====
-// Страница логина
 app.get('/admin/login', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -76,7 +71,6 @@ app.get('/admin/logout', (req, res) => {
     res.redirect('/admin/login');
 });
 
-// Главная страница админки
 app.get('/admin', isAuthenticated, (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -100,7 +94,7 @@ app.get('/admin', isAuthenticated, (req, res) => {
     `);
 });
 
-// ---- КАТЕГОРИИ ----
+// ----- Категории -----
 app.get('/admin/categories', isAuthenticated, (req, res) => {
     const categories = db.prepare('SELECT * FROM categories ORDER BY sort_order, id').all();
     let rows = '';
@@ -192,7 +186,7 @@ app.get('/admin/categories/delete/:id', isAuthenticated, (req, res) => {
     res.redirect('/admin/categories');
 });
 
-// ---- БРЕНДЫ (связь с категориями) ----
+// ----- Бренды -----
 app.get('/admin/brands', isAuthenticated, (req, res) => {
     const brands = db.prepare(`
         SELECT b.*, c.name as category_name 
@@ -311,7 +305,7 @@ app.get('/admin/brands/delete/:id', isAuthenticated, (req, res) => {
     res.redirect('/admin/brands');
 });
 
-// ---- ТОВАРЫ (связь с брендами) ----
+// ----- Товары -----
 app.get('/admin/products', isAuthenticated, (req, res) => {
     const products = db.prepare(`
         SELECT p.*, b.name as brand_name 
@@ -433,7 +427,7 @@ app.get('/admin/products/delete/:id', isAuthenticated, (req, res) => {
     res.redirect('/admin/products');
 });
 
-// ---- ВАРИАНТЫ ТОВАРОВ (размеры, фасовка) ----
+// ----- Варианты товаров -----
 app.get('/admin/variants', isAuthenticated, (req, res) => {
     const variants = db.prepare(`
         SELECT v.*, p.name as product_name 
@@ -558,16 +552,23 @@ app.get('/admin/variants/delete/:id', isAuthenticated, (req, res) => {
     res.redirect('/admin/variants');
 });
 
-// ---- ЗАКАЗЫ (пока просто просмотр) ----
+// ----- Заказы -----
 app.get('/admin/orders', isAuthenticated, (req, res) => {
     const orders = db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all();
     let rows = '';
     orders.forEach(o => {
+        let itemsHtml = '';
+        try {
+            const items = JSON.parse(o.items);
+            itemsHtml = items.map(item => `${item.productName} (${item.variantName}) x${item.quantity} = ${item.price*item.quantity}₽`).join('<br>');
+        } catch(e) {
+            itemsHtml = o.items;
+        }
         rows += `
             <tr>
                 <td>${o.id}</td>
                 <td>${o.user_id}</td>
-                <td><pre>${JSON.stringify(JSON.parse(o.items), null, 2)}</pre></td>
+                <td>${itemsHtml}</td>
                 <td>${o.total}</td>
                 <td>${o.status}</td>
                 <td>${o.created_at}</td>
@@ -593,29 +594,83 @@ app.get('/admin/orders', isAuthenticated, (req, res) => {
     `);
 });
 
+// ===== API ДЛЯ ВИТРИНЫ =====
+app.get('/api/categories', (req, res) => {
+    const categories = db.prepare('SELECT * FROM categories ORDER BY sort_order, id').all();
+    res.json(categories);
+});
+
+app.get('/api/brands', (req, res) => {
+    const { category_id } = req.query;
+    let query = 'SELECT * FROM brands ORDER BY sort_order, id';
+    let params = [];
+    if (category_id) {
+        query = 'SELECT * FROM brands WHERE category_id = ? ORDER BY sort_order, id';
+        params = [category_id];
+    }
+    const brands = db.prepare(query).all(params);
+    res.json(brands);
+});
+
+app.get('/api/products', (req, res) => {
+    const { brand_id } = req.query;
+    let query = 'SELECT * FROM products ORDER BY sort_order, id';
+    let params = [];
+    if (brand_id) {
+        query = 'SELECT * FROM products WHERE brand_id = ? ORDER BY sort_order, id';
+        params = [brand_id];
+    }
+    const products = db.prepare(query).all(params);
+    res.json(products);
+});
+
+app.get('/api/variants', (req, res) => {
+    const { product_id } = req.query;
+    let query = 'SELECT * FROM product_variants ORDER BY sort_order, id';
+    let params = [];
+    if (product_id) {
+        query = 'SELECT * FROM product_variants WHERE product_id = ? ORDER BY sort_order, id';
+        params = [product_id];
+    }
+    const variants = db.prepare(query).all(params);
+    res.json(variants);
+});
+
+app.post('/api/orders', (req, res) => {
+    const { user_id, items, total } = req.body;
+    try {
+        const stmt = db.prepare('INSERT INTO orders (user_id, items, total, status) VALUES (?, ?, ?, ?)');
+        const info = stmt.run(user_id, JSON.stringify(items), total, 'new');
+        res.json({ success: true, orderId: info.lastInsertRowid });
+    } catch (err) {
+        console.error('Ошибка сохранения заказа:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // ===== ВЕБ-СЕРВЕР =====
 app.listen(PORT, () => {
     console.log(`🌍 Сервер запущен на http://localhost:${PORT}`);
 });
 
 // ===== БОТ =====
-if (BOT_TOKEN) {
-    const bot = new Telegraf(BOT_TOKEN);
+let bot;
 
-    // Команда /start
+if (BOT_TOKEN) {
+    bot = new Telegraf(BOT_TOKEN);
+
     bot.start((ctx) => {
         ctx.reply('Добро пожаловать! Нажми кнопку:', Markup.inlineKeyboard([
             Markup.button.webApp('🛍 Открыть магазин', WEB_APP_URL)
         ]));
     });
 
-    // Команда /admin (доступ только по ID и только если пароль уже знаешь, но админка всё равно требует пароль)
     bot.command('admin', (ctx) => {
         if (ADMIN_USER_ID && ctx.from.id !== ADMIN_USER_ID) {
             ctx.reply('⛔ Доступ запрещён.');
             return;
         }
-        const adminUrl = `${WEB_APP_URL.replace(/\/$/, '')}/admin`; // используем тот же хост, что и WEB_APP_URL
+        const adminUrl = `${WEB_APP_URL.replace(/\/$/, '')}/admin`;
         ctx.reply('🔐 Админ-панель:', {
             reply_markup: {
                 inline_keyboard: [
@@ -638,10 +693,10 @@ if (BOT_TOKEN) {
 
 // ===== ЗАВЕРШЕНИЕ =====
 process.once('SIGINT', () => {
-    if (BOT_TOKEN) bot.stop('SIGINT');
+    if (bot) bot.stop('SIGINT');
     process.exit(0);
 });
 process.once('SIGTERM', () => {
-    if (BOT_TOKEN) bot.stop('SIGTERM');
+    if (bot) bot.stop('SIGTERM');
     process.exit(0);
 });
