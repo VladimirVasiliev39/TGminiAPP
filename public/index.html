@@ -18,12 +18,14 @@
     
     <script>
         const tg = window.Telegram.WebApp;
+        alert('Версия: 2.0. Адрес: ' + window.location.href);
         tg.ready();
         tg.expand();
         
         document.getElementById('buyBtn').onclick = () => {
+        alert('Кнопка нажата, вызываем fetch...');    
         tg.sendData('Тестовый заказ');
-        tg.close();           
+      //tg.close();           
         };
 
 //============= Обработчик  fetch========================
@@ -41,7 +43,7 @@ document.getElementById('sendData').onclick = async () => {
     });
     const result = await response.json();
     if (result.ok) {
-        tg.close();
+       // tg.close();
     } else {
         alert('Ошибка отправки: ' + (result.error || 'неизвестная ошибка'));
     }
