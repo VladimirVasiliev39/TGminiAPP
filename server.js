@@ -681,16 +681,16 @@ if (BOT_TOKEN) {
     });
 //=========================================================
 // Эндпоинт для отправки сообщения пользователю через бота
-app.post('/api/send-message', async (req, res) => {
+    app.post('/api/send-message', async (req, res) => {
     const { chatId, text } = req.body;
     if (!bot) {
-        return res.status(500).json({ error: 'Бот не инициализирован' });
+        return res.status(500).json({ error: 'Bot not initialized' });
     }
     try {
         await bot.telegram.sendMessage(chatId, text);
-        res.json({ success: true });
+        res.json({ ok: true });
     } catch (err) {
-        console.error('Ошибка отправки сообщения через бота:', err);
+        console.error('Ошибка отправки сообщения:', err);
         res.status(500).json({ error: err.message });
     }
 });

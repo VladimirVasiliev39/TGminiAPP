@@ -28,22 +28,22 @@
 
 //============= Обработчик  fetch========================
 document.getElementById('sendData').onclick = async () => {
-    // Получаем ID пользователя из Telegram
     const chatId = tg.initDataUnsafe?.user?.id;
     if (!chatId) {
-        alert('Не удалось определить пользователя');
+        alert('Не удалось получить ID пользователя');
         return;
     }
-    const res = await fetch('/api/send-message', {
+    const text = 'Привет из страницы!';
+    const response = await fetch('/api/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId, text: 'Привет из страницы!' })
+        body: JSON.stringify({ chatId, text })
     });
-    const data = await res.json();
-    if (data.success) {
-        tg.close(); // закрываем мини-приложение
+    const result = await response.json();
+    if (result.ok) {
+        tg.close();
     } else {
-        alert('Ошибка отправки: ' + (data.error || 'неизвестная ошибка'));
+        alert('Ошибка отправки: ' + (result.error || 'неизвестная ошибка'));
     }
 };
 //=======================================================
