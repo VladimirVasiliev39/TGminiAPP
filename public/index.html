@@ -2,62 +2,38 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мой магазин</title>
+    <title>Тест отправки</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body { font-family: system-ui, sans-serif; text-align: center; padding: 20px; }
-        button { padding: 12px 24px; font-size: 18px; margin-top: 20px; }
-    </style>
 </head>
 <body>
-    <h1>🛍 Добро пожаловать в магазин!</h1>
-    <p>Товары появятся здесь совсем скоро.</p>
-
-    <button id="buyBtn">Тестовая кнопка</button>
-    
+    <button id="sendMsg">Отправить сообщение</button>
     <script>
         const tg = window.Telegram.WebApp;
-        alert('Версия: 2.0. Адрес: ' + window.location.href);
         tg.ready();
-        tg.expand();
-        
-        document.getElementById('buyBtn').onclick = () => {
-        alert('Кнопка нажата, вызываем fetch...');    
-        tg.sendData('Тестовый заказ');
-      //tg.close();           
+
+        document.getElementById('sendMsg').onclick = async () => {
+            const chatId = tg.initDataUnsafe?.user?.id;
+            if (!chatId) {
+                alert('Нет chatId');
+                return;
+            }
+            try {
+                const response = await fetch('/api/send-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chatId, text: 'Тест с телефона' })
+                });
+                const result = await response.json();
+                if (result.ok) {
+                    alert('Сообщение отправлено!');
+                    tg.close();
+                } else {
+                    alert('Ошибка: ' + result.error);
+                }
+            } catch (err) {
+                alert('Ошибка fetch: ' + err.message);
+            }
         };
-
-//============= Обработчик  fetch========================
-document.getElementById('sendData').onclick = async () => {
-    const chatId = tg.initDataUnsafe?.user?.id;
-    if (!chatId) {
-        alert('Не удалось получить ID пользователя');
-        return;
-    }
-    const text = 'Привет из страницы!';
-    const response = await fetch('/api/send-message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId, text })
-    });
-    const result = await response.json();
-    if (result.ok) {
-       // tg.close();
-    } else {
-        alert('Ошибка отправки: ' + (result.error || 'неизвестная ошибка'));
-    }
-};
-//=======================================================
-
-
-
-
-         /* document.getElementById('sendData').onclick = () => {
-        tg.sendData('Привет из страницы!');
-        setTimeout(() => tg.close(), 300);
-       };*/
-
     </script>
 </body>
 </html>
