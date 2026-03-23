@@ -33,7 +33,7 @@ function isAuthenticated(req, res, next) {
     res.redirect('/admin/login');
 }
 
-// ===== АДМИНКА =====
+// ===== АДМИНКА (все маршруты) =====
 app.get('/admin/login', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -101,15 +101,11 @@ app.get('/admin/categories', isAuthenticated, (req, res) => {
     categories.forEach(c => {
         rows += `
             <tr>
-                <td>${c.id}</td>
-                <td>${c.name}</td>
-                <td>${c.icon || ''}</td>
-                <td>${c.sort_order}</td>
-                <td>
+                <td>${c.id}${c.id}${c.name}${c.icon || ''}${c.sort_order}
                     <a href="/admin/categories/edit/${c.id}" class="btn btn-sm btn-warning">Ред.</a>
                     <a href="/admin/categories/delete/${c.id}" class="btn btn-sm btn-danger" onclick="return confirm('Удалить?')">Удалить</a>
-                </td>
-            </tr>
+                 
+             
         `;
     });
     res.send(`
@@ -122,9 +118,11 @@ app.get('/admin/categories', isAuthenticated, (req, res) => {
         <body class="container mt-4">
             <h1>Категории</h1>
             <table class="table table-bordered mt-3">
-                <thead><tr><th>ID</th><th>Название</th><th>Иконка</th><th>Порядок</th><th>Действия</th></tr></thead>
+                <thead>…
+<th>ID</th><th>Название</th><th>Иконка</th><th>Порядок</th><th>Действия</th> …
+                </thead>
                 <tbody>${rows}</tbody>
-            </table>
+             
             <h3>Добавить категорию</h3>
             <form method="post" action="/admin/categories/add">
                 <div class="row">
@@ -200,16 +198,11 @@ app.get('/admin/brands', isAuthenticated, (req, res) => {
     brands.forEach(b => {
         rows += `
             <tr>
-                <td>${b.id}</td>
-                <td>${b.name}</td>
-                <td>${b.category_name || '—'}</td>
-                <td>${b.logo || ''}</td>
-                <td>${b.sort_order}</td>
-                <td>
+                <td>${b.id}${b.name}${b.category_name || '—'}${b.logo || ''}${b.sort_order}
                     <a href="/admin/brands/edit/${b.id}" class="btn btn-sm btn-warning">Ред.</a>
                     <a href="/admin/brands/delete/${b.id}" class="btn btn-sm btn-danger" onclick="return confirm('Удалить?')">Удалить</a>
-                </td>
-            </tr>
+                 
+             
         `;
     });
 
@@ -228,9 +221,11 @@ app.get('/admin/brands', isAuthenticated, (req, res) => {
         <body class="container mt-4">
             <h1>Бренды</h1>
             <table class="table table-bordered mt-3">
-                <thead><tr><th>ID</th><th>Название</th><th>Категория</th><th>Лого</th><th>Порядок</th><th>Действия</th></tr></thead>
+                <thead>…
+<th>ID</th><th>Название</th><th>Категория</th><th>Лого</th><th>Порядок</th><th>Действия</th> …
+                </thead>
                 <tbody>${rows}</tbody>
-            </table>
+             
             <h3>Добавить бренд</h3>
             <form method="post" action="/admin/brands/add">
                 <div class="row g-2">
@@ -319,17 +314,11 @@ app.get('/admin/products', isAuthenticated, (req, res) => {
     products.forEach(p => {
         rows += `
             <tr>
-                <td>${p.id}</td>
-                <td>${p.name}</td>
-                <td>${p.brand_name || '—'}</td>
-                <td>${p.description || ''}</td>
-                <td>${p.image || ''}</td>
-                <td>${p.sort_order}</td>
-                <td>
+                <td>${p.id}${p.name}${p.brand_name || '—'}${p.description || ''}${p.image || ''}${p.sort_order}
                     <a href="/admin/products/edit/${p.id}" class="btn btn-sm btn-warning">Ред.</a>
                     <a href="/admin/products/delete/${p.id}" class="btn btn-sm btn-danger" onclick="return confirm('Удалить?')">Удалить</a>
-                </td>
-            </tr>
+                 
+             
         `;
     });
 
@@ -348,9 +337,11 @@ app.get('/admin/products', isAuthenticated, (req, res) => {
         <body class="container mt-4">
             <h1>Товары</h1>
             <table class="table table-bordered mt-3">
-                <thead><tr><th>ID</th><th>Название</th><th>Бренд</th><th>Описание</th><th>Изображение</th><th>Порядок</th><th>Действия</th></tr></thead>
+                <thead>…
+<th>ID</th><th>Название</th><th>Бренд</th><th>Описание</th><th>Изображение</th><th>Порядок</th><th>Действия</th> …
+                </thead>
                 <tbody>${rows}</tbody>
-            </table>
+             
             <h3>Добавить товар</h3>
             <form method="post" action="/admin/products/add">
                 <div class="row g-2">
@@ -441,18 +432,11 @@ app.get('/admin/variants', isAuthenticated, (req, res) => {
     variants.forEach(v => {
         rows += `
             <tr>
-                <td>${v.id}</td>
-                <td>${v.product_name || '—'}</td>
-                <td>${v.name}</td>
-                <td>${v.price}</td>
-                <td>${v.stock}</td>
-                <td>${v.sku || ''}</td>
-                <td>${v.sort_order}</td>
-                <td>
+                <td>${v.id}${v.product_name || '—'}${v.name}${v.price}${v.stock}${v.sku || ''}${v.sort_order}
                     <a href="/admin/variants/edit/${v.id}" class="btn btn-sm btn-warning">Ред.</a>
                     <a href="/admin/variants/delete/${v.id}" class="btn btn-sm btn-danger" onclick="return confirm('Удалить?')">Удалить</a>
-                </td>
-            </tr>
+                 
+             
         `;
     });
 
@@ -471,9 +455,11 @@ app.get('/admin/variants', isAuthenticated, (req, res) => {
         <body class="container mt-4">
             <h1>Варианты товаров</h1>
             <table class="table table-bordered mt-3">
-                <thead><tr><th>ID</th><th>Товар</th><th>Название варианта</th><th>Цена</th><th>Остаток</th><th>Артикул</th><th>Порядок</th><th>Действия</th></tr></thead>
+                <thead>…
+<th>ID</th><th>Товар</th><th>Название варианта</th><th>Цена</th><th>Остаток</th><th>Артикул</th><th>Порядок</th><th>Действия</th> …
+                </thead>
                 <tbody>${rows}</tbody>
-            </table>
+             
             <h3>Добавить вариант</h3>
             <form method="post" action="/admin/variants/add">
                 <div class="row g-2">
@@ -566,13 +552,8 @@ app.get('/admin/orders', isAuthenticated, (req, res) => {
         }
         rows += `
             <tr>
-                <td>${o.id}</td>
-                <td>${o.user_id}</td>
-                <td>${itemsHtml}</td>
-                <td>${o.total}</td>
-                <td>${o.status}</td>
-                <td>${o.created_at}</td>
-            </tr>
+                <td>${o.id}${o.user_id}${itemsHtml}${o.total}${o.status}${o.created_at}
+             
         `;
     });
     res.send(`
@@ -585,9 +566,11 @@ app.get('/admin/orders', isAuthenticated, (req, res) => {
         <body class="container mt-4">
             <h1>Заказы</h1>
             <table class="table table-bordered mt-3">
-                <thead><tr><th>ID</th><th>User ID</th><th>Состав</th><th>Сумма</th><th>Статус</th><th>Дата</th></tr></thead>
+                <thead>…
+<th>ID</th><th>User ID</th><th>Состав</th><th>Сумма</th><th>Статус</th><th>Дата</th> …
+                </thead>
                 <tbody>${rows}</tbody>
-            </table>
+             
             <p class="mt-3"><a href="/admin">← Назад</a></p>
         </body>
         </html>
@@ -648,11 +631,6 @@ app.post('/api/orders', (req, res) => {
     }
 });
 
-// ===== ВЕБ-СЕРВЕР =====
-app.listen(PORT, () => {
-    console.log(`🌍 Сервер запущен на http://localhost:${PORT}`);
-});
-
 // ===== БОТ =====
 let bot;
 
@@ -679,37 +657,10 @@ if (BOT_TOKEN) {
             }
         });
     });
-//=========================================================
-// Эндпоинт для отправки сообщения пользователю через бота
-    app.post('/api/send-message', async (req, res) => {
-    const { chatId, text } = req.body;
-    if (!bot) {
-        return res.status(500).json({ error: 'Bot not initialized' });
-    }
-    try {
-        await bot.telegram.sendMessage(chatId, text);
-        res.json({ ok: true });
-    } catch (err) {
-        console.error('Ошибка отправки сообщения:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
-//=========================================================
 
-   /* bot.on('web_app_data', (ctx) => {
+    bot.on('web_app_data', (ctx) => {
         ctx.reply('Спасибо, данные получены!');
-    });*/
-
-//====================================================================
-/*bot.on('web_app_data', (ctx) => {
-    console.log('web_app_data received:', ctx.message.web_app_data.data);
-    ctx.reply('Спасибо, данные получены!')
-        .catch(err => console.error('Ошибка отправки ответа:', err));
-});*/
-//====================================================================/
-
-
-
+    });
 
     bot.launch()
         .then(() => console.log('🤖 Бот успешно запущен'))
@@ -717,6 +668,30 @@ if (BOT_TOKEN) {
 } else {
     console.log('⚠️ Бот не запущен, так как BOT_TOKEN не задан');
 }
+
+// ===== ЭНДПОИНТ ДЛЯ ОТПРАВКИ СООБЩЕНИЙ ЧЕРЕЗ БОТА =====
+// Должен быть после инициализации bot
+app.post('/api/send-message', async (req, res) => {
+    console.log('📨 Запрос на /api/send-message, тело:', req.body);
+    const { chatId, text } = req.body;
+    if (!bot) {
+        console.error('❌ Бот не инициализирован');
+        return res.status(500).json({ error: 'Bot not initialized' });
+    }
+    try {
+        await bot.telegram.sendMessage(chatId, text);
+        console.log(`✅ Сообщение отправлено пользователю ${chatId}`);
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('❌ Ошибка отправки сообщения:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ===== ВЕБ-СЕРВЕР =====
+app.listen(PORT, () => {
+    console.log(`🌍 Сервер запущен на http://localhost:${PORT}`);
+});
 
 // ===== ЗАВЕРШЕНИЕ =====
 process.once('SIGINT', () => {
