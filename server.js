@@ -680,9 +680,20 @@ if (BOT_TOKEN) {
         });
     });
 
-    bot.on('web_app_data', (ctx) => {
+/*    bot.on('web_app_data', (ctx) => {
         ctx.reply('Спасибо, данные получены!');
     });
+*/
+//====================================================================
+bot.on('web_app_data', (ctx) => {
+    console.log('web_app_data received:', ctx.message.web_app_data.data);
+    ctx.reply('Спасибо, данные получены!')
+        .catch(err => console.error('Ошибка отправки ответа:', err));
+});
+//====================================================================
+
+
+
 
     bot.launch()
         .then(() => console.log('🤖 Бот успешно запущен'))
