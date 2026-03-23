@@ -15,8 +15,7 @@
     <p>Товары появятся здесь совсем скоро.</p>
 
     <button id="buyBtn">Тестовая кнопка</button>
-    <button id="testFetch">📡 Тест fetch</button> //Тестовая кнопка
-
+    
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
@@ -26,19 +25,25 @@
         tg.sendData('Тестовый заказ');
         tg.close();           
         };
-        
-//============= Обработчик  тест-кнопки==================
-document.getElementById('testFetch').onclick = async () => {
-    try {
-        const res = await fetch('/api/test', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from: 'phone', time: Date.now() })
-        });
-        const data = await res.json();
-        alert('Fetch работает: ' + JSON.stringify(data));
-    } catch (err) {
-        alert('Ошибка fetch: ' + err.message);
+
+//============= Обработчик  fetch========================
+document.getElementById('sendData').onclick = async () => {
+    // Получаем ID пользователя из Telegram
+    const chatId = tg.initDataUnsafe?.user?.id;
+    if (!chatId) {
+        alert('Не удалось определить пользователя');
+        return;
+    }
+    const res = await fetch('/api/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, text: 'Привет из страницы!' })
+    });
+    const data = await res.json();
+    if (data.success) {
+        tg.close(); // закрываем мини-приложение
+    } else {
+        alert('Ошибка отправки: ' + (data.error || 'неизвестная ошибка'));
     }
 };
 //=======================================================

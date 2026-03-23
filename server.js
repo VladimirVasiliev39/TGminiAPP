@@ -680,9 +680,19 @@ if (BOT_TOKEN) {
         });
     });
 //=========================================================
-app.post('/api/test', (req, res) => {
-    console.log('🔥 /api/test получил:', req.body);
-    res.json({ ok: true, message: 'Принято!' });
+// Эндпоинт для отправки сообщения пользователю через бота
+app.post('/api/send-message', async (req, res) => {
+    const { chatId, text } = req.body;
+    if (!bot) {
+        return res.status(500).json({ error: 'Бот не инициализирован' });
+    }
+    try {
+        await bot.telegram.sendMessage(chatId, text);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Ошибка отправки сообщения через бота:', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 //=========================================================
 
@@ -691,11 +701,11 @@ app.post('/api/test', (req, res) => {
     });*/
 
 //====================================================================
-bot.on('web_app_data', (ctx) => {
+/*bot.on('web_app_data', (ctx) => {
     console.log('web_app_data received:', ctx.message.web_app_data.data);
     ctx.reply('Спасибо, данные получены!')
         .catch(err => console.error('Ошибка отправки ответа:', err));
-});
+});*/
 //====================================================================/
 
 
