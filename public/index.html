@@ -18,18 +18,15 @@
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
-
-       /* document.getElementById('buyBtn').onclick = () => {
-            tg.sendData('Тестовый заказ');
-            tg.close();           
-        };*/
-        document.getElementById('sendData').onclick = () => {
+        
+        document.getElementById('buyBtn').onclick = () => {
+        tg.sendData('Тестовый заказ');
+        tg.close();           
+        };
+      /* document.getElementById('sendData').onclick = () => {
         tg.sendData('Привет из страницы!');
         setTimeout(() => tg.close(), 300);
-       };
-
-
-
+       };*/
 
     </script>
 </body>
