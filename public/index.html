@@ -13,7 +13,10 @@
 <body>
     <h1>🛍 Добро пожаловать в магазин!</h1>
     <p>Товары появятся здесь совсем скоро.</p>
+
     <button id="buyBtn">Тестовая кнопка</button>
+    <button id="testFetch">📡 Тест fetch</button> //Тестовая кнопка
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
@@ -24,6 +27,25 @@
         tg.close();           
         };
         
+//============= Обработчик  тест-кнопки==================
+document.getElementById('testFetch').onclick = async () => {
+    try {
+        const res = await fetch('/api/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: 'phone', time: Date.now() })
+        });
+        const data = await res.json();
+        alert('Fetch работает: ' + JSON.stringify(data));
+    } catch (err) {
+        alert('Ошибка fetch: ' + err.message);
+    }
+};
+//=======================================================
+
+
+
+
          /* document.getElementById('sendData').onclick = () => {
         tg.sendData('Привет из страницы!');
         setTimeout(() => tg.close(), 300);
