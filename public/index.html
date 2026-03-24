@@ -16,7 +16,6 @@
         .categories, .brands { display: flex; flex-wrap: wrap; margin-bottom: 15px; }
         .brands button { background: #ccc; color: black; }
         .active-brand { background: #2e7dff !important; color: white !important; }
-        img { max-width: 100%; height: auto; }
     </style>
 </head>
 <body>
@@ -39,7 +38,6 @@
         let categories = [];
         let brands = [];
         let products = [];
-        let variants = [];
 
         function debug(msg) {
             const d = document.getElementById('debug');
@@ -47,7 +45,6 @@
             console.log(msg);
         }
 
-        // Загрузка категорий
         async function loadCategories() {
             debug('Загрузка категорий...');
             const res = await fetch('/api/categories');
@@ -63,7 +60,6 @@
             });
         }
 
-        // Загрузка брендов по категории
         async function loadBrands(categoryId) {
             debug(`Загрузка брендов для категории ${categoryId}...`);
             const res = await fetch(`/api/brands?category_id=${categoryId}`);
@@ -80,14 +76,11 @@
             document.getElementById('products').innerHTML = '';
         }
 
-        // Загрузка товаров по бренду
         async function loadProducts(brandId) {
             debug(`Загрузка товаров для бренда ${brandId}...`);
             const res = await fetch(`/api/products?brand_id=${brandId}`);
             products = await res.json();
             debug(`Товаров: ${products.length}`);
-            const varRes = await fetch('/api/variants');
-            variants = await varRes.json();
             renderProducts();
         }
 
@@ -107,16 +100,29 @@
             });
         }
 
+        // Получить варианты из полей товара
+        function getVariantsFromProduct(product) {
+            const variants = [];
+            for (let i = 1; i <= 5; i++) {
+                const unit = product[`ed_izm${i}`];
+                const price = product[`cena${i}`];
+                if (unit && price !== null && price !== '') {
+                    variants.push({ unit, price });
+                }
+            }
+            return variants;
+        }
+
         function showProduct(product) {
-            const productVariants = variants.filter(v => v.product_id === product.id);
-            if (productVariants.length === 0) {
+            const variants = getVariantsFromProduct(product);
+            if (variants.length === 0) {
                 alert('Нет вариантов для этого товара');
                 return;
             }
 
             let optionsHtml = '';
-            productVariants.forEach(v => {
-                optionsHtml += `<option value="${v.id}">${v.name} — ${v.price} ₽</option>`;
+            variants.forEach((v, idx) => {
+                optionsHtml += `<option value="${idx}">${v.unit} — ${v.price} ₽</option>`;
             });
 
             const modalBody = document.getElementById('modal-body');
@@ -140,10 +146,10 @@
 
             const addBtn = document.getElementById('add-to-cart');
             addBtn.onclick = () => {
-                const selectedId = parseInt(document.getElementById('variant-select').value);
-                const selectedVariant = productVariants.find(v => v.id === selectedId);
-                alert(`Добавлено: ${product.name} (${selectedVariant.name}) — ${selectedVariant.price} ₽`);
-                // Здесь позже будет добавление в корзину
+                const selectedIdx = parseInt(document.getElementById('variant-select').value);
+                const selected = variants[selectedIdx];
+                alert(`Добавлено: ${product.name} (${selected.unit}) — ${selected.price} ₽`);
+                // Здесь потом будет добавление в корзину
             };
         }
 
