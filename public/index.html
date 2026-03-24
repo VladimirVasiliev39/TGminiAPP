@@ -13,6 +13,7 @@
             padding: 0;
             background: var(--tg-theme-bg-color, #ffffff);
             color: var(--tg-theme-text-color, #000000);
+            padding-bottom: 40px;
         }
         .header {
             padding: 16px;
@@ -119,6 +120,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 1001;
         }
         .cart-badge {
             position: absolute;
@@ -178,6 +180,20 @@
         .brands-section, .products-section {
             margin-top: 10px;
         }
+        #debug {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: red;
+            color: white;
+            padding: 5px;
+            font-size: 12px;
+            z-index: 9999;
+            text-align: center;
+            white-space: nowrap;
+            overflow-x: auto;
+        }
     </style>
 </head>
 <body>
@@ -195,11 +211,21 @@
         <div class="cart-total" id="cartTotal"></div>
         <button id="checkoutBtn" style="width:100%; margin-top: 15px; padding:12px; background:#2e7dff; color:white; border:none; border-radius:10px;">Оформить заказ</button>
     </div>
+    <div id="debug">Инициализация...</div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
+
+        // Функция отладки
+        function debug(msg) {
+            const dbg = document.getElementById('debug');
+            if (dbg) dbg.innerHTML = msg;
+            console.log(msg);
+        }
+
+        debug('Скрипт загружен, Telegram WebApp инициализирован');
 
         let categories = [];
         let brands = [];
@@ -210,10 +236,13 @@
         let selectedCategoryId = null;
         let selectedBrandId = null;
 
+        debug(`Корзина загружена, количество позиций: ${cart.length}`);
+
         const updateCartUI = () => {
             const count = cart.reduce((sum, item) => sum + item.quantity, 0);
             document.getElementById('cartCount').innerText = count;
             localStorage.setItem('cart', JSON.stringify(cart));
+            debug(`Корзина обновлена, позиций: ${cart.length}, количество: ${count}`);
         };
 
         const renderCartModal = () => {
@@ -221,6 +250,7 @@
             if (cart.length === 0) {
                 container.innerHTML = '<p>Корзина пуста</p>';
                 document.getElementById('cartTotal').innerText = '';
+                debug('Рендер корзины: пусто');
                 return;
             }
             let html = '';
@@ -236,20 +266,24 @@
             });
             container.innerHTML = html;
             document.getElementById('cartTotal').innerHTML = `Итого: ${total} ₽`;
+            debug(`Рендер корзины: общая сумма ${total}`);
             document.querySelectorAll('.remove-item').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const idx = parseInt(btn.dataset.idx);
                     cart.splice(idx, 1);
                     updateCartUI();
                     renderCartModal();
+                    debug(`Удалён товар из корзины, индекс ${idx}`);
                 });
             });
         };
 
         const addToCart = (product, variant, quantity = 1) => {
+            debug(`addToCart вызван: товар ${product.name}, вариант ${variant.name}, цена ${variant.price}`);
             const existingIndex = cart.findIndex(item => item.variantId === variant.id);
             if (existingIndex !== -1) {
                 cart[existingIndex].quantity += quantity;
+                debug(`Товар уже в корзине, увеличиваем количество до ${cart[existingIndex].quantity}`);
             } else {
                 cart.push({
                     productId: product.id,
@@ -259,6 +293,7 @@
                     price: variant.price,
                     quantity: quantity
                 });
+                debug(`Товар добавлен в корзину`);
             }
             updateCartUI();
             renderCartModal();
@@ -267,108 +302,149 @@
 
         // Загрузка категорий
         const loadCategories = async () => {
-            const res = await fetch('/api/categories');
-            categories = await res.json();
-            const container = document.getElementById('categories');
-            let html = '<button class="category-btn" data-id="">Все</button>';
-            categories.forEach(cat => {
-                html += `<button class="category-btn" data-id="${cat.id}">${cat.icon || ''} ${cat.name}</button>`;
-            });
-            container.innerHTML = html;
-            document.querySelectorAll('.category-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.dataset.id ? parseInt(btn.dataset.id) : null;
-                    selectedCategoryId = id;
-                    selectedBrandId = null;
-                    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    loadBrands(id);
+            debug('Загрузка категорий...');
+            try {
+                const res = await fetch('/api/categories');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                categories = await res.json();
+                debug(`Категорий загружено: ${categories.length}`);
+                const container = document.getElementById('categories');
+                let html = '<button class="category-btn" data-id="">Все</button>';
+                categories.forEach(cat => {
+                    html += `<button class="category-btn" data-id="${cat.id}">${cat.icon || ''} ${cat.name}</button>`;
                 });
-            });
+                container.innerHTML = html;
+                document.querySelectorAll('.category-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.dataset.id ? parseInt(btn.dataset.id) : null;
+                        selectedCategoryId = id;
+                        selectedBrandId = null;
+                        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        debug(`Выбрана категория ID ${id || 'все'}`);
+                        loadBrands(id);
+                    });
+                });
+            } catch (err) {
+                debug(`Ошибка загрузки категорий: ${err.message}`);
+            }
         };
 
-        // Загрузка брендов по категории
+        // Загрузка брендов
         const loadBrands = async (categoryId) => {
             const url = categoryId ? `/api/brands?category_id=${categoryId}` : '/api/brands';
-            const res = await fetch(url);
-            brands = await res.json();
-            const container = document.getElementById('brandsContainer');
-            if (brands.length === 0) {
-                container.innerHTML = '<div class="loading">Нет брендов в этой категории</div>';
-                loadProducts(null);
-                return;
-            }
-            let html = '<div class="brands"><button class="brand-btn" data-id="">Все бренды</button>';
-            brands.forEach(b => {
-                html += `<button class="brand-btn" data-id="${b.id}">${b.name}</button>`;
-            });
-            html += '</div>';
-            container.innerHTML = html;
-            document.querySelectorAll('.brand-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.dataset.id ? parseInt(btn.dataset.id) : null;
-                    selectedBrandId = id;
-                    document.querySelectorAll('.brand-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    loadProducts(id);
+            debug(`Загрузка брендов: ${url}`);
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                brands = await res.json();
+                debug(`Брендов загружено: ${brands.length}`);
+                const container = document.getElementById('brandsContainer');
+                if (brands.length === 0) {
+                    container.innerHTML = '<div class="loading">Нет брендов в этой категории</div>';
+                    loadProducts(null);
+                    return;
+                }
+                let html = '<div class="brands"><button class="brand-btn" data-id="">Все бренды</button>';
+                brands.forEach(b => {
+                    html += `<button class="brand-btn" data-id="${b.id}">${b.name}</button>`;
                 });
-            });
-            loadProducts(null);
+                html += '</div>';
+                container.innerHTML = html;
+                document.querySelectorAll('.brand-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.dataset.id ? parseInt(btn.dataset.id) : null;
+                        selectedBrandId = id;
+                        document.querySelectorAll('.brand-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        debug(`Выбран бренд ID ${id || 'все'}`);
+                        loadProducts(id);
+                    });
+                });
+                loadProducts(null);
+            } catch (err) {
+                debug(`Ошибка загрузки брендов: ${err.message}`);
+            }
         };
 
-        // Загрузка товаров по бренду
+        // Загрузка товаров и вариантов
         const loadProducts = async (brandId) => {
             const url = brandId ? `/api/products?brand_id=${brandId}` : '/api/products';
-            const res = await fetch(url);
-            products = await res.json();
-            const variantsRes = await fetch('/api/variants');
-            variants = await variantsRes.json();
+            debug(`Загрузка товаров: ${url}`);
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                products = await res.json();
+                debug(`Товаров загружено: ${products.length}`);
 
-            const container = document.getElementById('productsContainer');
-            if (products.length === 0) {
-                container.innerHTML = '<div class="loading">Нет товаров</div>';
-                return;
-            }
-            let html = '<div class="products">';
-            products.forEach(p => {
-                const productVariants = variants.filter(v => v.product_id === p.id);
-                if (productVariants.length === 0) return;
-                html += `
-                    <div class="product-card">
-                        <div class="product-image" style="background-image: url('${p.image || '/images/placeholder.jpg'}')"></div>
-                        <div class="product-info">
-                            <div class="product-name">${p.name}</div>
-                            <select class="variant-select" data-product-id="${p.id}">
-                                ${productVariants.map(v => `<option value="${v.id}" data-price="${v.price}">${v.name} — ${v.price} ₽</option>`).join('')}
-                            </select>
-                            <button class="add-to-cart" data-product-id="${p.id}">В корзину</button>
+                const variantsRes = await fetch('/api/variants');
+                if (!variantsRes.ok) throw new Error(`HTTP ${variantsRes.status}`);
+                variants = await variantsRes.json();
+                debug(`Вариантов загружено: ${variants.length}`);
+
+                const container = document.getElementById('productsContainer');
+                if (products.length === 0) {
+                    container.innerHTML = '<div class="loading">Нет товаров</div>';
+                    debug('Нет товаров для отображения');
+                    return;
+                }
+                let html = '<div class="products">';
+                products.forEach(p => {
+                    const productVariants = variants.filter(v => v.product_id === p.id);
+                    if (productVariants.length === 0) return;
+                    html += `
+                        <div class="product-card" data-product-id="${p.id}">
+                            <div class="product-image" style="background-image: url('${p.image || '/images/placeholder.jpg'}')"></div>
+                            <div class="product-info">
+                                <div class="product-name">${p.name}</div>
+                                <select class="variant-select" data-product-id="${p.id}">
+                                    ${productVariants.map(v => `<option value="${v.id}" data-price="${v.price}">${v.name} — ${v.price} ₽</option>`).join('')}
+                                </select>
+                                <button class="add-to-cart" data-product-id="${p.id}">В корзину</button>
+                            </div>
                         </div>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            container.innerHTML = html;
-
-            document.querySelectorAll('.add-to-cart').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const productId = parseInt(btn.dataset.productId);
-                    const product = products.find(p => p.id === productId);
-                    const select = btn.closest('.product-card').querySelector('.variant-select');
-                    const variantId = parseInt(select.value);
-                    const variant = variants.find(v => v.id === variantId);
-                    addToCart(product, variant, 1);
+                    `;
                 });
-            });
+                html += '</div>';
+                container.innerHTML = html;
+                debug(`Рендер товаров выполнен, карточек: ${products.length}`);
+
+                // Привязка событий к кнопкам "В корзину"
+                document.querySelectorAll('.add-to-cart').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const productId = parseInt(btn.dataset.productId);
+                        const product = products.find(p => p.id === productId);
+                        if (!product) {
+                            debug(`Товар с ID ${productId} не найден`);
+                            return;
+                        }
+                        const select = btn.closest('.product-card').querySelector('.variant-select');
+                        const variantId = parseInt(select.value);
+                        const variant = variants.find(v => v.id === variantId);
+                        if (!variant) {
+                            debug(`Вариант с ID ${variantId} не найден`);
+                            return;
+                        }
+                        debug(`Клик по кнопке "В корзину": товар ${product.name}, вариант ${variant.name}`);
+                        addToCart(product, variant, 1);
+                    });
+                });
+                debug('События на кнопки "В корзину" привязаны');
+            } catch (err) {
+                debug(`Ошибка загрузки товаров/вариантов: ${err.message}`);
+            }
         };
 
         // Поиск
         const searchInput = document.getElementById('search');
         searchInput.addEventListener('input', (e) => {
             const searchText = e.target.value.toLowerCase();
+            debug(`Поиск: "${searchText}"`);
             const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchText));
             const container = document.getElementById('productsContainer');
             if (filteredProducts.length === 0) {
                 container.innerHTML = '<div class="loading">Нет товаров</div>';
+                debug('Поиск: товары не найдены');
                 return;
             }
             let html = '<div class="products">';
@@ -376,7 +452,7 @@
                 const productVariants = variants.filter(v => v.product_id === p.id);
                 if (productVariants.length === 0) return;
                 html += `
-                    <div class="product-card">
+                    <div class="product-card" data-product-id="${p.id}">
                         <div class="product-image" style="background-image: url('${p.image || '/images/placeholder.jpg'}')"></div>
                         <div class="product-info">
                             <div class="product-name">${p.name}</div>
@@ -390,10 +466,13 @@
             });
             html += '</div>';
             container.innerHTML = html;
+            debug(`Поиск: найдено товаров: ${filteredProducts.length}`);
+            // Повторно привязываем события
             document.querySelectorAll('.add-to-cart').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const productId = parseInt(btn.dataset.productId);
                     const product = products.find(p => p.id === productId);
+                    if (!product) return;
                     const select = btn.closest('.product-card').querySelector('.variant-select');
                     const variantId = parseInt(select.value);
                     const variant = variants.find(v => v.id === variantId);
@@ -408,17 +487,26 @@
 
         const cartModal = document.getElementById('cartModal');
         document.getElementById('cartButton').addEventListener('click', () => {
+            debug('Кнопка корзины нажата');
             renderCartModal();
             cartModal.classList.add('open');
         });
         document.getElementById('closeCart').addEventListener('click', () => {
+            debug('Закрытие корзины');
             cartModal.classList.remove('open');
         });
 
         // Оформление заказа
         document.getElementById('checkoutBtn').addEventListener('click', async () => {
+            debug('Кнопка "Оформить заказ" нажата');
+            if (cart.length === 0) {
+                debug('Корзина пуста, заказ не оформлен');
+                tg.showPopup({ title: 'Корзина пуста', message: 'Добавьте товары в корзину' });
+                return;
+            }
             const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
             const userId = tg.initDataUnsafe?.user?.id || 0;
+            debug(`Оформление заказа, пользователь ID: ${userId}, сумма: ${total}`);
             const orderData = {
                 user_id: userId,
                 items: cart,
@@ -430,9 +518,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(orderData)
                 });
+                if (!orderResponse.ok) throw new Error(`HTTP ${orderResponse.status}`);
                 const orderResult = await orderResponse.json();
+                debug(`Заказ сохранён, ID: ${orderResult.orderId}`);
                 if (orderResult.success) {
-                    // Отправляем уведомление пользователю через бота (fetch)
+                    // Отправляем уведомление
                     const msgResponse = await fetch('/api/send-message', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -442,6 +532,7 @@
                         })
                     });
                     const msgResult = await msgResponse.json();
+                    debug(`Уведомление отправлено: ${msgResult.ok ? 'успешно' : 'ошибка'}`);
                     if (msgResult.ok) {
                         tg.showPopup({ title: 'Заказ оформлен', message: `Номер заказа: ${orderResult.orderId}` });
                         cart = [];
@@ -452,11 +543,11 @@
                         tg.showPopup({ title: 'Ошибка', message: 'Заказ сохранён, но не удалось отправить уведомление' });
                     }
                 } else {
-                    tg.showPopup({ title: 'Ошибка', message: 'Не удалось оформить заказ' });
+                    throw new Error('orderResult.success false');
                 }
             } catch (err) {
-                console.error(err);
-                tg.showPopup({ title: 'Ошибка', message: 'Сетевая ошибка при оформлении заказа' });
+                debug(`Ошибка оформления заказа: ${err.message}`);
+                tg.showPopup({ title: 'Ошибка', message: 'Не удалось оформить заказ' });
             }
         });
 

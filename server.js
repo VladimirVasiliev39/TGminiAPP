@@ -33,6 +33,13 @@ function isAuthenticated(req, res, next) {
     res.redirect('/admin/login');
 }
 
+function debug(msg) {
+    const dbg = document.getElementById('debug');
+    if (dbg) dbg.innerHTML = msg;
+    console.log(msg);
+}
+
+
 // ===== АДМИНКА (все маршруты) =====
 app.get('/admin/login', (req, res) => {
     res.send(`
@@ -630,6 +637,8 @@ app.post('/api/orders', (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+
 
 // ===== БОТ =====
 let bot;
