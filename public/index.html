@@ -16,6 +16,7 @@
         .categories, .brands { display: flex; flex-wrap: wrap; margin-bottom: 15px; }
         .brands button { background: #ccc; color: black; }
         .active-brand { background: #2e7dff !important; color: white !important; }
+        img { max-width: 100%; height: auto; }
     </style>
 </head>
 <body>
@@ -76,7 +77,6 @@
                 btn.onclick = () => loadProducts(b.id);
                 container.appendChild(btn);
             });
-            // Очищаем товары
             document.getElementById('products').innerHTML = '';
         }
 
@@ -86,7 +86,6 @@
             const res = await fetch(`/api/products?brand_id=${brandId}`);
             products = await res.json();
             debug(`Товаров: ${products.length}`);
-            // Загружаем все варианты (можно потом фильтровать)
             const varRes = await fetch('/api/variants');
             variants = await varRes.json();
             renderProducts();
