@@ -6,26 +6,75 @@
     <title>Витрина</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
-        button { margin: 5px; padding: 8px 12px; cursor: pointer; background: var(--tg-theme-button-color, #2e7dff); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 5px; }
-        .product-card { border: 1px solid #ccc; border-radius: 10px; margin: 10px; padding: 10px; cursor: pointer; background: var(--tg-theme-secondary-bg-color, #f9f9f9); }
-        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: var(--tg-theme-bg-color, #fff); border-radius: 12px; max-width: 90%; max-height: 80%; overflow: auto; padding: 20px; position: relative; }
-        .close { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; }
-        #debug { position: fixed; bottom: 0; left: 0; background: red; color: white; padding: 4px; font-size: 12px; }
-        .categories, .brands { display: flex; flex-wrap: wrap; margin-bottom: 15px; }
-        .brands button { background: #ccc; color: black; }
-        .active-brand { background: #2e7dff !important; color: white !important; }
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            background: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+        }
+        button {
+            background: var(--tg-theme-button-color, #2e7dff);
+            color: var(--tg-theme-button-text-color, #fff);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 4px;
+        }
+        .product-card {
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            margin: 12px 0;
+            padding: 12px;
+            cursor: pointer;
+            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+        }
+        .product-card:hover {
+            background: #e0e0e0;
+        }
+        .product-name {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .product-image {
+            max-width: 100%;
+            max-height: 200px;
+            margin: 10px 0;
+        }
+        .variant-list {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        select, .variant-select {
+            margin: 10px 0;
+            padding: 8px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .back-button {
+            margin-bottom: 20px;
+        }
+        #debug {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            background: red;
+            color: white;
+            padding: 4px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
-    <div class="categories" id="categories"></div>
-    <div class="brands" id="brands"></div>
-    <div id="products"></div>
-    <div id="modal" style="display:none;" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="modal-body"></div>
+    <div id="app">
+        <div id="list-view">
+            <div id="categories"></div>
+            <div id="brands"></div>
+            <div id="products-list"></div>
+        </div>
+        <div id="detail-view" style="display:none;">
+            <button id="back-to-list" class="back-button">← Назад к списку</button>
+            <div id="product-detail"></div>
         </div>
     </div>
     <div id="debug">Инициализация</div>
@@ -45,6 +94,7 @@
             console.log(msg);
         }
 
+        // Загрузка категорий
         async function loadCategories() {
             debug('Загрузка категорий...');
             const res = await fetch('/api/categories');
@@ -60,6 +110,7 @@
             });
         }
 
+        // Загрузка брендов по категории
         async function loadBrands(categoryId) {
             debug(`Загрузка брендов для категории ${categoryId}...`);
             const res = await fetch(`/api/brands?category_id=${categoryId}`);
@@ -73,85 +124,101 @@
                 btn.onclick = () => loadProducts(b.id);
                 container.appendChild(btn);
             });
-            document.getElementById('products').innerHTML = '';
+            // Очищаем товары при смене категории
+            document.getElementById('products-list').innerHTML = '';
         }
 
+        // Загрузка товаров по бренду
         async function loadProducts(brandId) {
             debug(`Загрузка товаров для бренда ${brandId}...`);
             const res = await fetch(`/api/products?brand_id=${brandId}`);
             products = await res.json();
             debug(`Товаров: ${products.length}`);
-            renderProducts();
+            renderProductsList();
         }
 
-        function renderProducts() {
-            const container = document.getElementById('products');
+        function renderProductsList() {
+            const container = document.getElementById('products-list');
             container.innerHTML = '';
             products.forEach(p => {
                 const div = document.createElement('div');
                 div.className = 'product-card';
+                // первая цена для превью
+                let firstPrice = '';
+                for (let i=1; i<=5; i++) {
+                    if (p[`ed_izm${i}`] && p[`cena${i}`]) {
+                        firstPrice = `${p[`ed_izm${i}`]} — ${p[`cena${i}`]} ₽`;
+                        break;
+                    }
+                }
                 div.innerHTML = `
-                    <strong>${p.name}</strong>
-                    ${p.image ? `<br><img src="${p.image}" style="max-width:100px; max-height:100px;">` : ''}
-                    <br>${p.description || ''}
+                    <div class="product-name">${p.name}</div>
+                    ${p.image ? `<img class="product-image" src="${p.image}" onerror="this.style.display='none'">` : ''}
+                    <div>${p.description || ''}</div>
+                    <div>${firstPrice || 'Цена не указана'}</div>
                 `;
-                div.onclick = () => showProduct(p);
+                div.onclick = () => showProductDetail(p);
                 container.appendChild(div);
             });
         }
 
-        // Получить варианты из полей товара
-        function getVariantsFromProduct(product) {
+        function showProductDetail(product) {
+            // Собираем варианты
             const variants = [];
-            for (let i = 1; i <= 5; i++) {
+            for (let i=1; i<=5; i++) {
                 const unit = product[`ed_izm${i}`];
                 const price = product[`cena${i}`];
-                if (unit && price !== null && price !== '') {
+                if (unit && price) {
                     variants.push({ unit, price });
                 }
             }
-            return variants;
-        }
-
-        function showProduct(product) {
-            const variants = getVariantsFromProduct(product);
             if (variants.length === 0) {
                 alert('Нет вариантов для этого товара');
                 return;
             }
 
+            // Отображаем детальную карточку
+            const container = document.getElementById('product-detail');
             let optionsHtml = '';
             variants.forEach((v, idx) => {
                 optionsHtml += `<option value="${idx}">${v.unit} — ${v.price} ₽</option>`;
             });
 
-            const modalBody = document.getElementById('modal-body');
-            modalBody.innerHTML = `
-                <h3>${product.name}</h3>
-                ${product.image ? `<img src="${product.image}" style="max-width:100%; max-height:200px;">` : ''}
+            container.innerHTML = `
+                <h2>${product.name}</h2>
+                ${product.image ? `<img class="product-image" src="${product.image}" onerror="this.style.display='none'">` : ''}
                 <p>${product.description || ''}</p>
-                <h4>Выберите вариант:</h4>
+                <h4>Варианты:</h4>
+                <ul class="variant-list">
+                    ${variants.map(v => `<li>${v.unit} — ${v.price} ₽</li>`).join('')}
+                </ul>
                 <select id="variant-select">
                     ${optionsHtml}
                 </select>
                 <br>
-                <button id="add-to-cart">Добавить в корзину</button>
+                <button id="add-to-cart-btn">Добавить в корзину</button>
             `;
 
-            const modal = document.getElementById('modal');
-            modal.style.display = 'flex';
+            // Скрываем список, показываем деталь
+            document.getElementById('list-view').style.display = 'none';
+            document.getElementById('detail-view').style.display = 'block';
 
-            const closeBtn = modal.querySelector('.close');
-            closeBtn.onclick = () => modal.style.display = 'none';
-
-            const addBtn = document.getElementById('add-to-cart');
+            // Обработчик кнопки "Добавить в корзину"
+            const addBtn = document.getElementById('add-to-cart-btn');
             addBtn.onclick = () => {
                 const selectedIdx = parseInt(document.getElementById('variant-select').value);
                 const selected = variants[selectedIdx];
                 alert(`Добавлено: ${product.name} (${selected.unit}) — ${selected.price} ₽`);
-                // Здесь потом будет добавление в корзину
+                // Позже здесь будет реальное добавление в корзину
             };
         }
+
+        function backToList() {
+            document.getElementById('detail-view').style.display = 'none';
+            document.getElementById('list-view').style.display = 'block';
+        }
+
+        document.getElementById('back-to-list').onclick = backToList;
 
         loadCategories();
     </script>
