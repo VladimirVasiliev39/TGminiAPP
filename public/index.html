@@ -2,556 +2,152 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Мой магазин</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Витрина</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-            padding-bottom: 40px;
-        }
-        .header {
-            padding: 16px;
-            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            border-bottom: 1px solid var(--tg-theme-hint-color, #ccc);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .search {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--tg-theme-hint-color, #ccc);
-            border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 10px;
-            background: var(--tg-theme-bg-color, #fff);
-            color: var(--tg-theme-text-color, #000);
-        }
-        .categories, .brands {
-            display: flex;
-            overflow-x: auto;
-            gap: 10px;
-            padding-bottom: 8px;
-            margin-top: 5px;
-        }
-        .category-btn, .brand-btn {
-            background: var(--tg-theme-secondary-bg-color, #e9ecef);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            cursor: pointer;
-            white-space: nowrap;
-            color: var(--tg-theme-text-color, #000);
-        }
-        .category-btn.active, .brand-btn.active {
-            background: var(--tg-theme-button-color, #2e7dff);
-            color: var(--tg-theme-button-text-color, #fff);
-        }
-        .products {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 12px;
-            padding: 16px;
-        }
-        .product-card {
-            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .product-image {
-            width: 100%;
-            aspect-ratio: 1;
-            background: #ddd;
-            background-size: cover;
-            background-position: center;
-        }
-        .product-info {
-            padding: 12px;
-        }
-        .product-name {
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-        .product-price {
-            color: var(--tg-theme-button-color, #2e7dff);
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-        .variant-select {
-            width: 100%;
-            margin-bottom: 8px;
-            padding: 6px;
-            border-radius: 8px;
-            border: 1px solid var(--tg-theme-hint-color, #ccc);
-            background: var(--tg-theme-bg-color, #fff);
-            color: var(--tg-theme-text-color, #000);
-        }
-        .add-to-cart {
-            background: var(--tg-theme-button-color, #2e7dff);
-            color: var(--tg-theme-button-text-color, #fff);
-            border: none;
-            padding: 8px;
-            border-radius: 8px;
-            width: 100%;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .cart-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--tg-theme-button-color, #2e7dff);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 56px;
-            height: 56px;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1001;
-        }
-        .cart-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: red;
-            color: white;
-            border-radius: 50%;
-            width: 22px;
-            height: 22px;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .cart-modal {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--tg-theme-bg-color, white);
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            padding: 20px;
-            max-height: 80vh;
-            overflow-y: auto;
-            transform: translateY(100%);
-            transition: transform 0.3s;
-            z-index: 1000;
-        }
-        .cart-modal.open {
-            transform: translateY(0);
-        }
-        .cart-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .cart-total {
-            font-weight: bold;
-            margin-top: 10px;
-            text-align: right;
-        }
-        .close-cart {
-            background: none;
-            border: none;
-            font-size: 24px;
-            float: right;
-            cursor: pointer;
-        }
-        .loading {
-            text-align: center;
-            padding: 20px;
-        }
-        .brands-section, .products-section {
-            margin-top: 10px;
-        }
-        #debug {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: red;
-            color: white;
-            padding: 5px;
-            font-size: 12px;
-            z-index: 9999;
-            text-align: center;
-            white-space: nowrap;
-            overflow-x: auto;
-        }
+        body { font-family: sans-serif; padding: 20px; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
+        button { margin: 5px; padding: 8px 12px; cursor: pointer; background: var(--tg-theme-button-color, #2e7dff); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 5px; }
+        .product-card { border: 1px solid #ccc; border-radius: 10px; margin: 10px; padding: 10px; cursor: pointer; background: var(--tg-theme-secondary-bg-color, #f9f9f9); }
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--tg-theme-bg-color, #fff); border-radius: 12px; max-width: 90%; max-height: 80%; overflow: auto; padding: 20px; position: relative; }
+        .close { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; }
+        #debug { position: fixed; bottom: 0; left: 0; background: red; color: white; padding: 4px; font-size: 12px; }
+        .categories, .brands { display: flex; flex-wrap: wrap; margin-bottom: 15px; }
+        .brands button { background: #ccc; color: black; }
+        .active-brand { background: #2e7dff !important; color: white !important; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <input type="text" id="search" class="search" placeholder="Поиск товаров...">
-        <div id="categories" class="categories"></div>
+    <div class="categories" id="categories"></div>
+    <div class="brands" id="brands"></div>
+    <div id="products"></div>
+    <div id="modal" style="display:none;" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modal-body"></div>
+        </div>
     </div>
-    <div id="brandsContainer" class="brands-section"></div>
-    <div id="productsContainer" class="products-section"></div>
-    <button id="cartButton" class="cart-button">🛒<span id="cartCount" class="cart-badge">0</span></button>
-    <div id="cartModal" class="cart-modal">
-        <button class="close-cart" id="closeCart">✕</button>
-        <h3>Корзина</h3>
-        <div id="cartItems"></div>
-        <div class="cart-total" id="cartTotal"></div>
-        <button id="checkoutBtn" style="width:100%; margin-top: 15px; padding:12px; background:#2e7dff; color:white; border:none; border-radius:10px;">Оформить заказ</button>
-    </div>
-    <div id="debug">Инициализация...</div>
+    <div id="debug">Инициализация</div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        // Функция отладки
-        function debug(msg) {
-            const dbg = document.getElementById('debug');
-            if (dbg) dbg.innerHTML = msg;
-            console.log(msg);
-        }
-
-        debug('Скрипт загружен, Telegram WebApp инициализирован');
-
         let categories = [];
         let brands = [];
         let products = [];
         let variants = [];
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-        let selectedCategoryId = null;
-        let selectedBrandId = null;
-
-        debug(`Корзина загружена, количество позиций: ${cart.length}`);
-
-        const updateCartUI = () => {
-            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-            document.getElementById('cartCount').innerText = count;
-            localStorage.setItem('cart', JSON.stringify(cart));
-            debug(`Корзина обновлена, позиций: ${cart.length}, количество: ${count}`);
-        };
-
-        const renderCartModal = () => {
-            const container = document.getElementById('cartItems');
-            if (cart.length === 0) {
-                container.innerHTML = '<p>Корзина пуста</p>';
-                document.getElementById('cartTotal').innerText = '';
-                debug('Рендер корзины: пусто');
-                return;
-            }
-            let html = '';
-            let total = 0;
-            cart.forEach((item, idx) => {
-                total += item.price * item.quantity;
-                html += `
-                    <div class="cart-item">
-                        <div><strong>${item.productName}</strong> (${item.variantName})<br>x${item.quantity}</div>
-                        <div>${item.price * item.quantity} ₽ <button data-idx="${idx}" class="remove-item">❌</button></div>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-            document.getElementById('cartTotal').innerHTML = `Итого: ${total} ₽`;
-            debug(`Рендер корзины: общая сумма ${total}`);
-            document.querySelectorAll('.remove-item').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const idx = parseInt(btn.dataset.idx);
-                    cart.splice(idx, 1);
-                    updateCartUI();
-                    renderCartModal();
-                    debug(`Удалён товар из корзины, индекс ${idx}`);
-                });
-            });
-        };
-
-        const addToCart = (product, variant, quantity = 1) => {
-            debug(`addToCart вызван: товар ${product.name}, вариант ${variant.name}, цена ${variant.price}`);
-            const existingIndex = cart.findIndex(item => item.variantId === variant.id);
-            if (existingIndex !== -1) {
-                cart[existingIndex].quantity += quantity;
-                debug(`Товар уже в корзине, увеличиваем количество до ${cart[existingIndex].quantity}`);
-            } else {
-                cart.push({
-                    productId: product.id,
-                    productName: product.name,
-                    variantId: variant.id,
-                    variantName: variant.name,
-                    price: variant.price,
-                    quantity: quantity
-                });
-                debug(`Товар добавлен в корзину`);
-            }
-            updateCartUI();
-            renderCartModal();
-            tg.showPopup({ title: 'Добавлено', message: `${product.name} (${variant.name}) добавлен в корзину` });
-        };
+        function debug(msg) {
+            const d = document.getElementById('debug');
+            d.innerText = msg;
+            console.log(msg);
+        }
 
         // Загрузка категорий
-        const loadCategories = async () => {
+        async function loadCategories() {
             debug('Загрузка категорий...');
-            try {
-                const res = await fetch('/api/categories');
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                categories = await res.json();
-                debug(`Категорий загружено: ${categories.length}`);
-                const container = document.getElementById('categories');
-                let html = '<button class="category-btn" data-id="">Все</button>';
-                categories.forEach(cat => {
-                    html += `<button class="category-btn" data-id="${cat.id}">${cat.icon || ''} ${cat.name}</button>`;
-                });
-                container.innerHTML = html;
-                document.querySelectorAll('.category-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const id = btn.dataset.id ? parseInt(btn.dataset.id) : null;
-                        selectedCategoryId = id;
-                        selectedBrandId = null;
-                        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                        debug(`Выбрана категория ID ${id || 'все'}`);
-                        loadBrands(id);
-                    });
-                });
-            } catch (err) {
-                debug(`Ошибка загрузки категорий: ${err.message}`);
-            }
-        };
+            const res = await fetch('/api/categories');
+            categories = await res.json();
+            debug(`Категорий: ${categories.length}`);
+            const container = document.getElementById('categories');
+            container.innerHTML = '';
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.textContent = cat.name;
+                btn.onclick = () => loadBrands(cat.id);
+                container.appendChild(btn);
+            });
+        }
 
-        // Загрузка брендов
-        const loadBrands = async (categoryId) => {
-            const url = categoryId ? `/api/brands?category_id=${categoryId}` : '/api/brands';
-            debug(`Загрузка брендов: ${url}`);
-            try {
-                const res = await fetch(url);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                brands = await res.json();
-                debug(`Брендов загружено: ${brands.length}`);
-                const container = document.getElementById('brandsContainer');
-                if (brands.length === 0) {
-                    container.innerHTML = '<div class="loading">Нет брендов в этой категории</div>';
-                    loadProducts(null);
-                    return;
-                }
-                let html = '<div class="brands"><button class="brand-btn" data-id="">Все бренды</button>';
-                brands.forEach(b => {
-                    html += `<button class="brand-btn" data-id="${b.id}">${b.name}</button>`;
-                });
-                html += '</div>';
-                container.innerHTML = html;
-                document.querySelectorAll('.brand-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const id = btn.dataset.id ? parseInt(btn.dataset.id) : null;
-                        selectedBrandId = id;
-                        document.querySelectorAll('.brand-btn').forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                        debug(`Выбран бренд ID ${id || 'все'}`);
-                        loadProducts(id);
-                    });
-                });
-                loadProducts(null);
-            } catch (err) {
-                debug(`Ошибка загрузки брендов: ${err.message}`);
-            }
-        };
+        // Загрузка брендов по категории
+        async function loadBrands(categoryId) {
+            debug(`Загрузка брендов для категории ${categoryId}...`);
+            const res = await fetch(`/api/brands?category_id=${categoryId}`);
+            brands = await res.json();
+            debug(`Брендов: ${brands.length}`);
+            const container = document.getElementById('brands');
+            container.innerHTML = '';
+            brands.forEach(b => {
+                const btn = document.createElement('button');
+                btn.textContent = b.name;
+                btn.onclick = () => loadProducts(b.id);
+                container.appendChild(btn);
+            });
+            // Очищаем товары
+            document.getElementById('products').innerHTML = '';
+        }
 
-        // Загрузка товаров и вариантов
-        const loadProducts = async (brandId) => {
-            const url = brandId ? `/api/products?brand_id=${brandId}` : '/api/products';
-            debug(`Загрузка товаров: ${url}`);
-            try {
-                const res = await fetch(url);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                products = await res.json();
-                debug(`Товаров загружено: ${products.length}`);
+        // Загрузка товаров по бренду
+        async function loadProducts(brandId) {
+            debug(`Загрузка товаров для бренда ${brandId}...`);
+            const res = await fetch(`/api/products?brand_id=${brandId}`);
+            products = await res.json();
+            debug(`Товаров: ${products.length}`);
+            // Загружаем все варианты (можно потом фильтровать)
+            const varRes = await fetch('/api/variants');
+            variants = await varRes.json();
+            renderProducts();
+        }
 
-                const variantsRes = await fetch('/api/variants');
-                if (!variantsRes.ok) throw new Error(`HTTP ${variantsRes.status}`);
-                variants = await variantsRes.json();
-                debug(`Вариантов загружено: ${variants.length}`);
-
-                const container = document.getElementById('productsContainer');
-                if (products.length === 0) {
-                    container.innerHTML = '<div class="loading">Нет товаров</div>';
-                    debug('Нет товаров для отображения');
-                    return;
-                }
-                let html = '<div class="products">';
-                products.forEach(p => {
-                    const productVariants = variants.filter(v => v.product_id === p.id);
-                    if (productVariants.length === 0) return;
-                    html += `
-                        <div class="product-card" data-product-id="${p.id}">
-                            <div class="product-image" style="background-image: url('${p.image || '/images/placeholder.jpg'}')"></div>
-                            <div class="product-info">
-                                <div class="product-name">${p.name}</div>
-                                <select class="variant-select" data-product-id="${p.id}">
-                                    ${productVariants.map(v => `<option value="${v.id}" data-price="${v.price}">${v.name} — ${v.price} ₽</option>`).join('')}
-                                </select>
-                                <button class="add-to-cart" data-product-id="${p.id}">В корзину</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                container.innerHTML = html;
-                debug(`Рендер товаров выполнен, карточек: ${products.length}`);
-
-                // Привязка событий к кнопкам "В корзину"
-                document.querySelectorAll('.add-to-cart').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const productId = parseInt(btn.dataset.productId);
-                        const product = products.find(p => p.id === productId);
-                        if (!product) {
-                            debug(`Товар с ID ${productId} не найден`);
-                            return;
-                        }
-                        const select = btn.closest('.product-card').querySelector('.variant-select');
-                        const variantId = parseInt(select.value);
-                        const variant = variants.find(v => v.id === variantId);
-                        if (!variant) {
-                            debug(`Вариант с ID ${variantId} не найден`);
-                            return;
-                        }
-                        debug(`Клик по кнопке "В корзину": товар ${product.name}, вариант ${variant.name}`);
-                        addToCart(product, variant, 1);
-                    });
-                });
-                debug('События на кнопки "В корзину" привязаны');
-            } catch (err) {
-                debug(`Ошибка загрузки товаров/вариантов: ${err.message}`);
-            }
-        };
-
-        // Поиск
-        const searchInput = document.getElementById('search');
-        searchInput.addEventListener('input', (e) => {
-            const searchText = e.target.value.toLowerCase();
-            debug(`Поиск: "${searchText}"`);
-            const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchText));
-            const container = document.getElementById('productsContainer');
-            if (filteredProducts.length === 0) {
-                container.innerHTML = '<div class="loading">Нет товаров</div>';
-                debug('Поиск: товары не найдены');
-                return;
-            }
-            let html = '<div class="products">';
-            filteredProducts.forEach(p => {
-                const productVariants = variants.filter(v => v.product_id === p.id);
-                if (productVariants.length === 0) return;
-                html += `
-                    <div class="product-card" data-product-id="${p.id}">
-                        <div class="product-image" style="background-image: url('${p.image || '/images/placeholder.jpg'}')"></div>
-                        <div class="product-info">
-                            <div class="product-name">${p.name}</div>
-                            <select class="variant-select" data-product-id="${p.id}">
-                                ${productVariants.map(v => `<option value="${v.id}" data-price="${v.price}">${v.name} — ${v.price} ₽</option>`).join('')}
-                            </select>
-                            <button class="add-to-cart" data-product-id="${p.id}">В корзину</button>
-                        </div>
-                    </div>
+        function renderProducts() {
+            const container = document.getElementById('products');
+            container.innerHTML = '';
+            products.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'product-card';
+                div.innerHTML = `
+                    <strong>${p.name}</strong>
+                    ${p.image ? `<br><img src="${p.image}" style="max-width:100px; max-height:100px;">` : ''}
+                    <br>${p.description || ''}
                 `;
+                div.onclick = () => showProduct(p);
+                container.appendChild(div);
             });
-            html += '</div>';
-            container.innerHTML = html;
-            debug(`Поиск: найдено товаров: ${filteredProducts.length}`);
-            // Повторно привязываем события
-            document.querySelectorAll('.add-to-cart').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const productId = parseInt(btn.dataset.productId);
-                    const product = products.find(p => p.id === productId);
-                    if (!product) return;
-                    const select = btn.closest('.product-card').querySelector('.variant-select');
-                    const variantId = parseInt(select.value);
-                    const variant = variants.find(v => v.id === variantId);
-                    addToCart(product, variant, 1);
-                });
-            });
-        });
+        }
 
-        // Корзина
-        updateCartUI();
-        renderCartModal();
-
-        const cartModal = document.getElementById('cartModal');
-        document.getElementById('cartButton').addEventListener('click', () => {
-            debug('Кнопка корзины нажата');
-            renderCartModal();
-            cartModal.classList.add('open');
-        });
-        document.getElementById('closeCart').addEventListener('click', () => {
-            debug('Закрытие корзины');
-            cartModal.classList.remove('open');
-        });
-
-        // Оформление заказа
-        document.getElementById('checkoutBtn').addEventListener('click', async () => {
-            debug('Кнопка "Оформить заказ" нажата');
-            if (cart.length === 0) {
-                debug('Корзина пуста, заказ не оформлен');
-                tg.showPopup({ title: 'Корзина пуста', message: 'Добавьте товары в корзину' });
+        function showProduct(product) {
+            const productVariants = variants.filter(v => v.product_id === product.id);
+            if (productVariants.length === 0) {
+                alert('Нет вариантов для этого товара');
                 return;
             }
-            const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-            const userId = tg.initDataUnsafe?.user?.id || 0;
-            debug(`Оформление заказа, пользователь ID: ${userId}, сумма: ${total}`);
-            const orderData = {
-                user_id: userId,
-                items: cart,
-                total: total
-            };
-            try {
-                const orderResponse = await fetch('/api/orders', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(orderData)
-                });
-                if (!orderResponse.ok) throw new Error(`HTTP ${orderResponse.status}`);
-                const orderResult = await orderResponse.json();
-                debug(`Заказ сохранён, ID: ${orderResult.orderId}`);
-                if (orderResult.success) {
-                    // Отправляем уведомление
-                    const msgResponse = await fetch('/api/send-message', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chatId: userId,
-                            text: `✅ Заказ №${orderResult.orderId} оформлен на сумму ${total} ₽. Спасибо!`
-                        })
-                    });
-                    const msgResult = await msgResponse.json();
-                    debug(`Уведомление отправлено: ${msgResult.ok ? 'успешно' : 'ошибка'}`);
-                    if (msgResult.ok) {
-                        tg.showPopup({ title: 'Заказ оформлен', message: `Номер заказа: ${orderResult.orderId}` });
-                        cart = [];
-                        updateCartUI();
-                        renderCartModal();
-                        cartModal.classList.remove('open');
-                    } else {
-                        tg.showPopup({ title: 'Ошибка', message: 'Заказ сохранён, но не удалось отправить уведомление' });
-                    }
-                } else {
-                    throw new Error('orderResult.success false');
-                }
-            } catch (err) {
-                debug(`Ошибка оформления заказа: ${err.message}`);
-                tg.showPopup({ title: 'Ошибка', message: 'Не удалось оформить заказ' });
-            }
-        });
 
-        // Инициализация
+            let optionsHtml = '';
+            productVariants.forEach(v => {
+                optionsHtml += `<option value="${v.id}">${v.name} — ${v.price} ₽</option>`;
+            });
+
+            const modalBody = document.getElementById('modal-body');
+            modalBody.innerHTML = `
+                <h3>${product.name}</h3>
+                ${product.image ? `<img src="${product.image}" style="max-width:100%; max-height:200px;">` : ''}
+                <p>${product.description || ''}</p>
+                <h4>Выберите вариант:</h4>
+                <select id="variant-select">
+                    ${optionsHtml}
+                </select>
+                <br>
+                <button id="add-to-cart">Добавить в корзину</button>
+            `;
+
+            const modal = document.getElementById('modal');
+            modal.style.display = 'flex';
+
+            const closeBtn = modal.querySelector('.close');
+            closeBtn.onclick = () => modal.style.display = 'none';
+
+            const addBtn = document.getElementById('add-to-cart');
+            addBtn.onclick = () => {
+                const selectedId = parseInt(document.getElementById('variant-select').value);
+                const selectedVariant = productVariants.find(v => v.id === selectedId);
+                alert(`Добавлено: ${product.name} (${selectedVariant.name}) — ${selectedVariant.price} ₽`);
+                // Здесь позже будет добавление в корзину
+            };
+        }
+
         loadCategories();
     </script>
 </body>
