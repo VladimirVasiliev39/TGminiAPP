@@ -21,6 +21,16 @@
             cursor: pointer;
             margin: 4px;
         }
+        .variant-btn {
+            background: #e9ecef;
+            color: #000;
+            margin: 4px;
+            padding: 6px 12px;
+        }
+        .variant-btn.active {
+            background: var(--tg-theme-button-color, #2e7dff);
+            color: white;
+        }
         .product-card {
             border: 1px solid #ccc;
             border-radius: 12px;
@@ -63,6 +73,37 @@
             padding: 4px;
             font-size: 12px;
         }
+        .cart-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--tg-theme-button-color, #2e7dff);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: red;
+            color: white;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -77,6 +118,7 @@
             <div id="product-detail"></div>
         </div>
     </div>
+    <div id="cartButton" class="cart-button">🛒<span id="cartCount" class="cart-badge">0</span></div>
     <div id="debug">Инициализация</div>
 
     <script>
@@ -87,11 +129,19 @@
         let categories = [];
         let brands = [];
         let products = [];
+        let cart = [];
 
         function debug(msg) {
             const d = document.getElementById('debug');
             d.innerText = msg;
             console.log(msg);
+        }
+
+        function updateCartUI() {
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById('cartCount').innerText = count;
+            // пока просто сохраняем в localStorage, корзину не показываем
+            localStorage.setItem('cart', JSON.stringify(cart));
         }
 
         // Загрузка категорий
@@ -124,11 +174,10 @@
                 btn.onclick = () => loadProducts(b.id);
                 container.appendChild(btn);
             });
-            // Очищаем товары при смене категории
             document.getElementById('products-list').innerHTML = '';
         }
 
-        // Загрузка товаров по бренду
+        // Загрузка товаров по бренду (уже с brand_name и category_name)
         async function loadProducts(brandId) {
             debug(`Загрузка товаров для бренда ${brandId}...`);
             const res = await fetch(`/api/products?brand_id=${brandId}`);
@@ -177,39 +226,57 @@
                 return;
             }
 
+            // Выбранный вариант по умолчанию — первый
+            let selectedVariant = variants[0];
+            let currentPrice = selectedVariant.price;
+
             // Отображаем детальную карточку
             const container = document.getElementById('product-detail');
-            let optionsHtml = '';
+            
+            // Генерируем кнопки вариантов
+            let variantButtonsHtml = '';
             variants.forEach((v, idx) => {
-                optionsHtml += `<option value="${idx}">${v.unit} — ${v.price} ₽</option>`;
+                variantButtonsHtml += `<button class="variant-btn" data-price="${v.price}" data-unit="${v.unit}" data-idx="${idx}">${v.unit}</button>`;
             });
 
             container.innerHTML = `
                 <h2>${product.name}</h2>
                 ${product.image ? `<img class="product-image" src="${product.image}" onerror="this.style.display='none'">` : ''}
-                <p>${product.description || ''}</p>
-                <h4>Варианты:</h4>
-                <ul class="variant-list">
-                    ${variants.map(v => `<li>${v.unit} — ${v.price} ₽</li>`).join('')}
-                </ul>
-                <select id="variant-select">
-                    ${optionsHtml}
-                </select>
-                <br>
-                <button id="add-to-cart-btn">Добавить в корзину</button>
+                <div><strong>Цена:</strong> <span id="current-price">${currentPrice}</span> ₽</div>
+                <div><strong>Бренд:</strong> ${product.brand_name || '—'}</div>
+                <div><strong>Фасовка:</strong> <span id="selected-unit">${selectedVariant.unit}</span></div>
+                <div class="variant-buttons">${variantButtonsHtml}</div>
+                <div><strong>Категория:</strong> ${product.category_name || '—'}</div>
+                <div><strong>Описание:</strong> ${product.description || '—'}</div>
+                <button id="add-to-cart-btn">В корзину</button>
             `;
+
+            // Привязываем обработчики кнопок вариантов
+            document.querySelectorAll('.variant-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Убираем активный класс у всех
+                    document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const price = parseInt(btn.dataset.price);
+                    const unit = btn.dataset.unit;
+                    document.getElementById('current-price').innerText = price;
+                    document.getElementById('selected-unit').innerText = unit;
+                    selectedVariant = { unit, price };
+                });
+            });
+            // Активная кнопка по умолчанию (первая)
+            document.querySelector('.variant-btn')?.classList.add('active');
 
             // Скрываем список, показываем деталь
             document.getElementById('list-view').style.display = 'none';
             document.getElementById('detail-view').style.display = 'block';
 
-            // Обработчик кнопки "Добавить в корзину"
+            // Обработчик кнопки "В корзину"
             const addBtn = document.getElementById('add-to-cart-btn');
             addBtn.onclick = () => {
-                const selectedIdx = parseInt(document.getElementById('variant-select').value);
-                const selected = variants[selectedIdx];
-                alert(`Добавлено: ${product.name} (${selected.unit}) — ${selected.price} ₽`);
-                // Позже здесь будет реальное добавление в корзину
+                alert(`Добавлено: ${product.name} (${selectedVariant.unit}) — ${selectedVariant.price} ₽`);
+                // Здесь позже будет реальное добавление в корзину
+                // пока только alert
             };
         }
 
@@ -219,6 +286,11 @@
         }
 
         document.getElementById('back-to-list').onclick = backToList;
+
+        // Заглушка для кнопки корзины
+        document.getElementById('cartButton').onclick = () => {
+            alert(`В корзине ${cart.length} товаров (пока не реализовано)`);
+        };
 
         loadCategories();
     </script>

@@ -200,16 +200,27 @@ app.get('/api/brands', (req, res) => {
     }
     res.json(db.prepare(sql).all(params));
 });
+//-------------------------------------------
 app.get('/api/products', (req, res) => {
     const { brand_id } = req.query;
-    let sql = 'SELECT * FROM products ORDER BY sort_order, id';
+    let sql = `
+        SELECT p.*, 
+               b.name as brand_name, 
+               c.name as category_name
+        FROM products p
+        LEFT JOIN brands b ON p.brand_id = b.id
+        LEFT JOIN categories c ON b.category_id = c.id
+    `;
     let params = [];
     if (brand_id) {
-        sql = 'SELECT * FROM products WHERE brand_id = ? ORDER BY sort_order, id';
+        sql += ' WHERE p.brand_id = ?';
         params = [brand_id];
     }
-    res.json(db.prepare(sql).all(params));
+    sql += ' ORDER BY p.sort_order, p.id';
+    const products = db.prepare(sql).all(params);
+    res.json(products);
 });
+//-----------------------------------------------------------------
 app.post('/api/orders', (req, res) => {
     const { user_id, items, total } = req.body;
     try {
