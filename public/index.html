@@ -40,7 +40,7 @@
             background: var(--tg-theme-secondary-bg-color, #f9f9f9);
             display: flex;
             gap: 12px;
-            align-items: center;
+            align-items: flex-start;
         }
         .product-card:hover {
             background: #e0e0e0;
@@ -62,6 +62,19 @@
         .product-brand {
             font-size: 0.9em;
             color: #666;
+            margin: 4px 0;
+        }
+        .variant-list {
+            margin: 8px 0;
+            font-size: 0.85em;
+            color: #444;
+        }
+        .variant-list div {
+            margin: 2px 0;
+        }
+        .full-width-btn {
+            width: 100%;
+            margin-top: 8px;
         }
         .detail-image {
             max-width: 100%;
@@ -145,7 +158,7 @@
         let categories = [];
         let brands = [];
         let products = [];
-        let currentBrand = null; // текущий выбранный бренд
+        let currentBrand = null;
         let cart = [];
 
         function debug(msg) {
@@ -160,7 +173,6 @@
             localStorage.setItem('cart', JSON.stringify(cart));
         }
 
-        // Загрузка категорий
         async function loadCategories() {
             debug('Загрузка категорий...');
             const res = await fetch('/api/categories');
@@ -176,7 +188,6 @@
             });
         }
 
-        // Загрузка брендов по категории
         async function loadBrands(categoryId) {
             debug(`Загрузка брендов для категории ${categoryId}...`);
             const res = await fetch(`/api/brands?category_id=${categoryId}`);
@@ -193,7 +204,6 @@
             document.getElementById('products-list').innerHTML = '';
         }
 
-        // Загрузка товаров по бренду
         async function loadProducts(brandId, brand) {
             currentBrand = brand;
             debug(`Загрузка товаров для бренда ${brandId}...`);
@@ -203,28 +213,40 @@
             renderProductsList();
         }
 
+        function getVariantsText(product) {
+            let variants = [];
+            for (let i=1; i<=5; i++) {
+                const unit = product[`ed_izm${i}`];
+                const price = product[`cena${i}`];
+                if (unit && price) {
+                    variants.push({ price, unit });
+                }
+            }
+            if (variants.length === 0) return '';
+            return variants.map(v => `${v.price} ₽ — ${v.unit}`).join('<br>');
+        }
+
         function renderProductsList() {
             const container = document.getElementById('products-list');
             container.innerHTML = '';
             products.forEach(p => {
+                const variantsText = getVariantsText(p);
                 const div = document.createElement('div');
                 div.className = 'product-card';
-                // Первая цена для отображения (не используется, но для совместимости)
                 div.innerHTML = `
                     ${p.image ? `<img class="product-image" src="${p.image}" onerror="this.style.display='none'">` : '<div class="product-image" style="background:#ccc;"></div>'}
                     <div class="product-info">
                         <div class="product-name">${p.name}</div>
                         <div class="product-brand">${p.brand_name || '—'}</div>
-                        <button class="go-to-detail-btn" data-product-id="${p.id}">В корзину</button>
+                        <div class="variant-list">${variantsText}</div>
+                        <button class="full-width-btn go-to-detail-btn" data-product-id="${p.id}">В корзину</button>
                     </div>
                 `;
-                // Клик по карточке
                 div.onclick = (e) => {
                     if (e.target.tagName !== 'BUTTON') {
                         showProductDetail(p);
                     }
                 };
-                // Обработчик кнопки
                 const btn = div.querySelector('.go-to-detail-btn');
                 btn.onclick = (e) => {
                     e.stopPropagation();
@@ -235,7 +257,7 @@
         }
 
         function showProductDetail(product) {
-            // Собираем варианты
+            // Собираем варианты для детальной карточки
             const variants = [];
             for (let i=1; i<=5; i++) {
                 const unit = product[`ed_izm${i}`];
@@ -270,7 +292,6 @@
                 <button id="add-to-cart-btn">В корзину</button>
             `;
 
-            // Обработка выбора варианта
             document.querySelectorAll('.variant-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
@@ -284,19 +305,16 @@
             });
             document.querySelector('.variant-btn')?.classList.add('active');
 
-            // Кнопка «В корзину» (пока alert)
             const addBtn = document.getElementById('add-to-cart-btn');
             addBtn.onclick = () => {
                 alert(`Добавлено: ${product.name} (${selectedVariant.unit}) — ${selectedVariant.price} ₽`);
-                // TODO: добавить в корзину
+                // здесь будет добавление в корзину
             };
 
-            // Настраиваем кнопку назад
             const backBrandSpan = document.getElementById('back-brand-name');
             backBrandSpan.innerText = currentBrand ? `к ${currentBrand.name}` : '';
             document.getElementById('back-to-list').onclick = backToList;
 
-            // Скрываем список, показываем деталь
             document.getElementById('list-view').style.display = 'none';
             document.getElementById('detail-view').style.display = 'block';
         }
@@ -306,7 +324,6 @@
             document.getElementById('list-view').style.display = 'block';
         }
 
-        // Заглушка корзины
         document.getElementById('cartButton').onclick = () => {
             alert(`В корзине ${cart.length} товаров (пока не реализовано)`);
         };
