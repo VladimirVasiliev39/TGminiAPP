@@ -2,77 +2,130 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Витрина</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            font-family: sans-serif;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background: var(--tg-theme-bg-color, #fff);
             color: var(--tg-theme-text-color, #000);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        button {
+        /* Хидер – фиксированная верхняя часть (50% экрана) */
+        .header {
+            flex: 1;               /* занимает 50% высоты (если body flex:1 и footer flex:1) */
+            min-height: 0;         /* чтобы не выходило за пределы */
+            display: flex;
+            flex-direction: column;
+            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+            border-bottom: 1px solid var(--tg-theme-hint-color, #ddd);
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+        }
+        .logo {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+        .contact-btn {
             background: var(--tg-theme-button-color, #2e7dff);
             color: var(--tg-theme-button-text-color, #fff);
-            border: none;
+            text-decoration: none;
             padding: 8px 16px;
-            border-radius: 8px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .banner-img {
+            flex: 1;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            margin: 0 16px 16px 16px;
+            border-radius: 16px;
+            min-height: 120px;
+        }
+        /* Основная область (скроллится) */
+        .content {
+            flex: 1;               /* вторая половина */
+            overflow-y: auto;
+            padding: 16px;
+        }
+        /* Кнопки категорий и брендов */
+        .categories, .brands {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            justify-content: center;
+        }
+        .category-btn, .brand-btn {
+            background: var(--tg-theme-secondary-bg-color, #e9ecef);
+            color: var(--tg-theme-text-color, #000);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 16px;
             cursor: pointer;
-            margin: 4px;
+            transition: all 0.2s;
         }
-        .variant-btn {
-            background: #e9ecef;
-            color: #000;
-            margin: 4px;
-            padding: 6px 12px;
-        }
-        .variant-btn.active {
+        .category-btn.active, .brand-btn.active {
             background: var(--tg-theme-button-color, #2e7dff);
             color: white;
         }
-        .product-card {
-            border: 1px solid #ccc;
-            border-radius: 12px;
-            margin: 12px 0;
-            padding: 0;
-            cursor: pointer;
-            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
-            overflow: hidden;
+        /* Список товаров (карточки) */
+        .products-list {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            gap: 16px;
         }
-        .product-card:hover {
-            background: #e0e0e0;
+        .product-card {
+            background: var(--tg-theme-secondary-bg-color, #fff);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .product-card:active {
+            transform: scale(0.99);
         }
         .product-image {
             width: 100%;
-            height: auto;
-            display: block;
-            background: #ddd;
+            aspect-ratio: 1 / 1;
             object-fit: cover;
+            background: #ddd;
         }
         .product-info {
-            width: 100%;
             padding: 12px;
             text-align: center;
-            box-sizing: border-box;
         }
         .product-name {
             font-weight: bold;
-            font-size: 1.1em;
+            font-size: 1.1rem;
             margin-bottom: 4px;
         }
         .product-brand {
-            font-size: 0.9em;
-            color: #666;
-            margin: 4px 0;
+            font-size: 0.85rem;
+            color: var(--tg-theme-hint-color, #666);
+            margin-bottom: 8px;
         }
         .variant-list {
+            font-size: 0.8rem;
+            color: var(--tg-theme-hint-color, #444);
             margin: 8px 0;
-            font-size: 0.85em;
-            color: #444;
             text-align: left;
             display: inline-block;
         }
@@ -81,48 +134,51 @@
         }
         .full-width-btn {
             width: 100%;
+            background: var(--tg-theme-button-color, #2e7dff);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
             margin-top: 8px;
-            box-sizing: border-box;
+            cursor: pointer;
         }
-        .detail-image {
-            max-width: 100%;
-            max-height: 200px;
-            margin: 10px 0;
-        }
-        .back-button {
-            margin-bottom: 20px;
+        /* Кнопка наверх */
+        .scroll-top {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: var(--tg-theme-button-color, #2e7dff);
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: opacity 0.2s;
+            z-index: 10;
         }
-        .back-button span {
-            font-weight: bold;
-        }
-        #debug {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            background: red;
-            color: white;
-            padding: 4px;
-            font-size: 12px;
-        }
+        /* Кнопка корзины (плавающая) */
         .cart-button {
             position: fixed;
             bottom: 20px;
             right: 20px;
             background: var(--tg-theme-button-color, #2e7dff);
             color: white;
-            border: none;
-            border-radius: 50%;
             width: 56px;
             height: 56px;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         .cart-badge {
             position: absolute;
@@ -138,24 +194,72 @@
             align-items: center;
             justify-content: center;
         }
+        /* Модалка корзины (пока пустая) */
+        .cart-modal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--tg-theme-bg-color, white);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            padding: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s;
+            z-index: 20;
+        }
+        .cart-modal.open {
+            transform: translateY(0);
+        }
+        .close-cart {
+            background: none;
+            border: none;
+            font-size: 24px;
+            float: right;
+            cursor: pointer;
+        }
+        #debug {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            background: red;
+            color: white;
+            padding: 4px;
+            font-size: 12px;
+            z-index: 999;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div id="app">
-        <div id="list-view">
-            <div id="categories"></div>
-            <div id="brands"></div>
-            <div id="products-list"></div>
+    <div class="header">
+        <div class="top-bar">
+            <img src="/images/logo/logo.png" alt="Лого" class="logo" onerror="this.style.display='none'">
+            <a href="https://t.me/@BurkinaFaso25" class="contact-btn" target="_blank">Написать нам</a>
         </div>
-        <div id="detail-view" style="display:none;">
-            <div class="back-button" id="back-button">
-                <button id="back-to-list">← Назад</button>
-                <span id="back-brand-name"></span>
-            </div>
-            <div id="product-detail"></div>
-        </div>
+        <div class="banner-img" style="background-image: url('/image/vitrina/vitrina.jpg');"></div>
     </div>
+
+    <div class="content" id="content">
+        <div id="categoriesContainer" class="categories"></div>
+        <div id="brandsContainer" class="brands hidden"></div>
+        <div id="productsContainer" class="products-list"></div>
+    </div>
+
+    <div id="scrollTopBtn" class="scroll-top hidden">↑</div>
     <div id="cartButton" class="cart-button">🛒<span id="cartCount" class="cart-badge">0</span></div>
+
+    <div id="cartModal" class="cart-modal">
+        <button class="close-cart" id="closeCart">✕</button>
+        <h3>Корзина</h3>
+        <div id="cartItems"></div>
+        <div class="cart-total" id="cartTotal"></div>
+        <button id="checkoutBtn" style="width:100%; margin-top: 15px; padding:12px; background:#2e7dff; color:white; border:none; border-radius:10px;">Оформить заказ</button>
+    </div>
     <div id="debug">Инициализация</div>
 
     <script>
@@ -169,6 +273,20 @@
         let currentBrand = null;
         let cart = [];
 
+        // DOM элементы
+        const categoriesContainer = document.getElementById('categoriesContainer');
+        const brandsContainer = document.getElementById('brandsContainer');
+        const productsContainer = document.getElementById('productsContainer');
+        const scrollTopBtn = document.getElementById('scrollTopBtn');
+        const contentDiv = document.getElementById('content');
+        const cartButton = document.getElementById('cartButton');
+        const cartModal = document.getElementById('cartModal');
+        const closeCartBtn = document.getElementById('closeCart');
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const cartCountSpan = document.getElementById('cartCount');
+        const cartItemsDiv = document.getElementById('cartItems');
+        const cartTotalSpan = document.getElementById('cartTotal');
+
         function debug(msg) {
             const d = document.getElementById('debug');
             d.innerText = msg;
@@ -177,48 +295,94 @@
 
         function updateCartUI() {
             const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-            document.getElementById('cartCount').innerText = count;
+            cartCountSpan.innerText = count;
             localStorage.setItem('cart', JSON.stringify(cart));
+            renderCartModal();
         }
 
+        function renderCartModal() {
+            if (cart.length === 0) {
+                cartItemsDiv.innerHTML = '<p>Корзина пуста</p>';
+                cartTotalSpan.innerText = '';
+                return;
+            }
+            let html = '';
+            let total = 0;
+            cart.forEach((item, idx) => {
+                total += item.price * item.quantity;
+                html += `
+                    <div class="cart-item">
+                        <div><strong>${item.productName}</strong> (${item.variantName})<br>x${item.quantity}</div>
+                        <div>${item.price * item.quantity} ₽ <button data-idx="${idx}" class="remove-item">❌</button></div>
+                    </div>
+                `;
+            });
+            cartItemsDiv.innerHTML = html;
+            cartTotalSpan.innerText = `Итого: ${total} ₽`;
+            document.querySelectorAll('.remove-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(btn.dataset.idx);
+                    cart.splice(idx, 1);
+                    updateCartUI();
+                });
+            });
+        }
+
+        // Загрузка категорий
         async function loadCategories() {
             debug('Загрузка категорий...');
             const res = await fetch('/api/categories');
             categories = await res.json();
             debug(`Категорий: ${categories.length}`);
-            const container = document.getElementById('categories');
-            container.innerHTML = '';
+            categoriesContainer.innerHTML = '';
             categories.forEach(cat => {
                 const btn = document.createElement('button');
+                btn.className = 'category-btn';
                 btn.textContent = cat.name;
-                btn.onclick = () => loadBrands(cat.id);
-                container.appendChild(btn);
+                btn.onclick = () => onCategorySelect(cat.id);
+                categoriesContainer.appendChild(btn);
             });
+            // Показываем категории, скрываем бренды и товары
+            categoriesContainer.classList.remove('hidden');
+            brandsContainer.classList.add('hidden');
+            productsContainer.innerHTML = '';
+            scrollTopBtn.classList.add('hidden');
         }
 
-        async function loadBrands(categoryId) {
-            debug(`Загрузка брендов для категории ${categoryId}...`);
+        // Выбрана категория
+        async function onCategorySelect(categoryId) {
+            debug(`Выбрана категория ${categoryId}`);
+            // Загружаем бренды
             const res = await fetch(`/api/brands?category_id=${categoryId}`);
             brands = await res.json();
             debug(`Брендов: ${brands.length}`);
-            const container = document.getElementById('brands');
-            container.innerHTML = '';
+            brandsContainer.innerHTML = '';
             brands.forEach(b => {
                 const btn = document.createElement('button');
+                btn.className = 'brand-btn';
                 btn.textContent = b.name;
-                btn.onclick = () => loadProducts(b.id, b);
-                container.appendChild(btn);
+                btn.onclick = () => onBrandSelect(b.id, b.name);
+                brandsContainer.appendChild(btn);
             });
-            document.getElementById('products-list').innerHTML = '';
+            // Прячем категории, показываем бренды
+            categoriesContainer.classList.add('hidden');
+            brandsContainer.classList.remove('hidden');
+            productsContainer.innerHTML = '';
+            scrollTopBtn.classList.add('hidden');
         }
 
-        async function loadProducts(brandId, brand) {
-            currentBrand = brand;
-            debug(`Загрузка товаров для бренда ${brandId}...`);
+        // Выбран бренд
+        async function onBrandSelect(brandId, brandName) {
+            currentBrand = brandName;
+            debug(`Выбран бренд ${brandId} (${brandName})`);
             const res = await fetch(`/api/products?brand_id=${brandId}`);
             products = await res.json();
             debug(`Товаров: ${products.length}`);
             renderProductsList();
+            brandsContainer.classList.add('hidden');
+            scrollTopBtn.classList.remove('hidden');
+            // Прокручиваем контент к началу списка
+            contentDiv.scrollTop = 0;
         }
 
         function getVariantsText(product) {
@@ -235,14 +399,13 @@
         }
 
         function renderProductsList() {
-            const container = document.getElementById('products-list');
-            container.innerHTML = '';
+            productsContainer.innerHTML = '';
             products.forEach(p => {
                 const variantsText = getVariantsText(p);
-                const div = document.createElement('div');
-                div.className = 'product-card';
-                div.innerHTML = `
-                    ${p.image ? `<img class="product-image" src="${p.image}" onerror="this.style.display='none'">` : '<div class="product-image" style="background:#ccc; min-height:120px;"></div>'}
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    ${p.image ? `<img class="product-image" src="${p.image}" onerror="this.style.display='none'">` : '<div class="product-image" style="background:#ccc;"></div>'}
                     <div class="product-info">
                         <div class="product-name">${p.name}</div>
                         <div class="product-brand">${p.brand_name || '—'}</div>
@@ -250,21 +413,23 @@
                         <button class="full-width-btn go-to-detail-btn" data-product-id="${p.id}">В корзину</button>
                     </div>
                 `;
-                div.onclick = (e) => {
+                card.onclick = (e) => {
                     if (e.target.tagName !== 'BUTTON') {
                         showProductDetail(p);
                     }
                 };
-                const btn = div.querySelector('.go-to-detail-btn');
+                const btn = card.querySelector('.go-to-detail-btn');
                 btn.onclick = (e) => {
                     e.stopPropagation();
                     showProductDetail(p);
                 };
-                container.appendChild(div);
+                productsContainer.appendChild(card);
             });
         }
 
+        // Показ детальной карточки (пока без корзины, только для демонстрации)
         function showProductDetail(product) {
+            // Собираем варианты
             const variants = [];
             for (let i=1; i<=5; i++) {
                 const unit = product[`ed_izm${i}`];
@@ -277,64 +442,147 @@
                 alert('Нет вариантов для этого товара');
                 return;
             }
-
             let selectedVariant = variants[0];
             let currentPrice = selectedVariant.price;
 
-            const container = document.getElementById('product-detail');
+            const modalBody = document.createElement('div');
+            modalBody.style.position = 'fixed';
+            modalBody.style.top = '0';
+            modalBody.style.left = '0';
+            modalBody.style.right = '0';
+            modalBody.style.bottom = '0';
+            modalBody.style.background = 'rgba(0,0,0,0.5)';
+            modalBody.style.display = 'flex';
+            modalBody.style.alignItems = 'center';
+            modalBody.style.justifyContent = 'center';
+            modalBody.style.zIndex = '2000';
+
+            const modalContent = document.createElement('div');
+            modalContent.style.background = 'var(--tg-theme-bg-color, #fff)';
+            modalContent.style.borderRadius = '12px';
+            modalContent.style.maxWidth = '90%';
+            modalContent.style.maxHeight = '80%';
+            modalContent.style.overflow = 'auto';
+            modalContent.style.padding = '20px';
+            modalContent.style.position = 'relative';
+
             let variantButtonsHtml = '';
             variants.forEach((v, idx) => {
                 variantButtonsHtml += `<button class="variant-btn" data-price="${v.price}" data-unit="${v.unit}" data-idx="${idx}">${v.unit}</button>`;
             });
 
-            container.innerHTML = `
+            modalContent.innerHTML = `
                 <h2>${product.name}</h2>
-                ${product.image ? `<img class="detail-image" src="${product.image}" onerror="this.style.display='none'">` : ''}
-                <div><strong>Цена:</strong> <span id="current-price">${currentPrice}</span> ₽</div>
+                ${product.image ? `<img src="${product.image}" style="max-width:100%; max-height:200px; margin:10px 0;">` : ''}
+                <div><strong>Цена:</strong> <span id="detail-price">${currentPrice}</span> ₽</div>
                 <div><strong>Бренд:</strong> ${product.brand_name || '—'}</div>
-                <div><strong>Фасовка:</strong> <span id="selected-unit">${selectedVariant.unit}</span></div>
+                <div><strong>Фасовка:</strong> <span id="detail-unit">${selectedVariant.unit}</span></div>
                 <div class="variant-buttons">${variantButtonsHtml}</div>
                 <div><strong>Категория:</strong> ${product.category_name || '—'}</div>
                 <div><strong>Описание:</strong> ${product.description || '—'}</div>
-                <button id="add-to-cart-btn">В корзину</button>
+                <button id="modal-add-to-cart" style="margin-top:16px; padding:10px; background:var(--tg-theme-button-color); color:white; border:none; border-radius:8px; width:100%;">Добавить в корзину</button>
+                <button id="modal-close" style="margin-top:8px; background:none; border:none; text-decoration:underline;">Закрыть</button>
             `;
 
-            document.querySelectorAll('.variant-btn').forEach(btn => {
+            modalBody.appendChild(modalContent);
+            document.body.appendChild(modalBody);
+
+            // Обработчики вариантов
+            modalContent.querySelectorAll('.variant-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+                    modalContent.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     const price = parseInt(btn.dataset.price);
                     const unit = btn.dataset.unit;
-                    document.getElementById('current-price').innerText = price;
-                    document.getElementById('selected-unit').innerText = unit;
+                    modalContent.querySelector('#detail-price').innerText = price;
+                    modalContent.querySelector('#detail-unit').innerText = unit;
                     selectedVariant = { unit, price };
                 });
             });
-            document.querySelector('.variant-btn')?.classList.add('active');
+            if (modalContent.querySelector('.variant-btn')) {
+                modalContent.querySelector('.variant-btn').classList.add('active');
+            }
 
-            const addBtn = document.getElementById('add-to-cart-btn');
+            const addBtn = modalContent.querySelector('#modal-add-to-cart');
             addBtn.onclick = () => {
+                // Добавляем в корзину
+                const existing = cart.find(i => i.variantId === selectedVariant.unit); // вариант уникален по названию? Лучше по комбинации productId+unit
+                const item = {
+                    productId: product.id,
+                    productName: product.name,
+                    variantName: selectedVariant.unit,
+                    price: selectedVariant.price,
+                    quantity: 1
+                };
+                const existingIndex = cart.findIndex(i => i.productId === item.productId && i.variantName === item.variantName);
+                if (existingIndex !== -1) {
+                    cart[existingIndex].quantity++;
+                } else {
+                    cart.push(item);
+                }
+                updateCartUI();
                 alert(`Добавлено: ${product.name} (${selectedVariant.unit}) — ${selectedVariant.price} ₽`);
-                // позже добавим корзину
+                modalBody.remove();
             };
 
-            const backBrandSpan = document.getElementById('back-brand-name');
-            backBrandSpan.innerText = currentBrand ? `к ${currentBrand.name}` : '';
-            document.getElementById('back-to-list').onclick = backToList;
-
-            document.getElementById('list-view').style.display = 'none';
-            document.getElementById('detail-view').style.display = 'block';
+            const closeBtn = modalContent.querySelector('#modal-close');
+            closeBtn.onclick = () => modalBody.remove();
         }
 
-        function backToList() {
-            document.getElementById('detail-view').style.display = 'none';
-            document.getElementById('list-view').style.display = 'block';
-        }
-
-        document.getElementById('cartButton').onclick = () => {
-            alert(`В корзине ${cart.length} товаров (пока не реализовано)`);
+        // Стрелка наверх
+        scrollTopBtn.onclick = () => {
+            // Сбрасываем выбор: показываем категории, прячем бренды и товары
+            categoriesContainer.classList.remove('hidden');
+            brandsContainer.classList.add('hidden');
+            productsContainer.innerHTML = '';
+            scrollTopBtn.classList.add('hidden');
+            currentBrand = null;
+            contentDiv.scrollTop = 0;
         };
 
+        // Корзина (пока просто заглушка)
+        cartButton.onclick = () => {
+            renderCartModal();
+            cartModal.classList.add('open');
+        };
+        closeCartBtn.onclick = () => cartModal.classList.remove('open');
+
+        checkoutBtn.onclick = async () => {
+            if (cart.length === 0) {
+                alert('Корзина пуста');
+                return;
+            }
+            const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            const userId = tg.initDataUnsafe?.user?.id || 0;
+            const orderData = { user_id: userId, items: cart, total };
+            try {
+                const res = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    // Отправляем уведомление через бота
+                    await fetch('/api/send-message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chatId: userId, text: `✅ Заказ №${result.orderId} оформлен на сумму ${total} ₽. Спасибо!` })
+                    });
+                    alert(`Заказ №${result.orderId} оформлен!`);
+                    cart = [];
+                    updateCartUI();
+                    cartModal.classList.remove('open');
+                } else {
+                    alert('Ошибка оформления заказа');
+                }
+            } catch (err) {
+                alert('Сетевая ошибка');
+                console.error(err);
+            }
+        };
+
+        // Инициализация
         loadCategories();
     </script>
 </body>
