@@ -41,16 +41,13 @@
             background: none;
             border: none;
             font-size: 18px;
+            font-weight: 500;
             cursor: pointer;
             padding: 4px 8px;
             display: flex;
             align-items: center;
             gap: 6px;
             color: var(--tg-theme-button-color, #2e7dff);
-            font-weight: 500;
-        }
-        .back-btn span {
-            font-size: 16px;
         }
         .grid-scroll {
             overflow-x: auto;
@@ -241,7 +238,7 @@
 
     <div class="menu-header">
         <div id="backButtonContainer" class="hidden">
-            <button id="backBtn" class="back-btn">← <span id="backText">Главное меню</span></button>
+            <button id="backBtn" class="back-btn">← <span id="backText"></span></button>
         </div>
         <span id="menuTitle">Главное меню</span>
     </div>
@@ -269,7 +266,7 @@
         let brands = [];
         let products = [];
         let currentBrand = null;
-        let currentCategoryId = null;  // для возврата к брендам
+        let currentCategoryId = null;
         let cart = [];
 
         const categoriesContainer = document.getElementById('categoriesContainer');
@@ -380,9 +377,9 @@
             products = await res.json();
             renderProductsList();
             brandsContainer.classList.add('hidden');
-            menuTitle.innerText = brandName;
+            menuTitle.innerText = ''; // заголовок справа пустой
             backButtonContainer.classList.remove('hidden');
-            backTextSpan.innerText = `Назад к ${brandName}`;
+            backTextSpan.innerText = brandName; // только имя бренда без "Назад"
             backBtn.onclick = () => loadBrandsFromCurrentCategory();
         }
 
