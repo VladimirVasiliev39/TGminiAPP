@@ -16,9 +16,8 @@
             background: var(--tg-theme-bg-color, #fff);
             color: var(--tg-theme-text-color, #000);
             overflow-y: auto;
-            padding-bottom: 70px; /* место под корзину */
+            padding-bottom: 70px;
         }
-        /* Витрина (фото) */
         .banner {
             width: 100%;
             display: block;
@@ -29,7 +28,6 @@
             height: auto;
             display: block;
         }
-        /* Заголовок и стрелка */
         .menu-header {
             display: flex;
             align-items: center;
@@ -42,18 +40,18 @@
         .back-btn {
             background: none;
             border: none;
-            font-size: 24px;
+            font-size: 18px;
             cursor: pointer;
-            padding: 4px;
+            padding: 4px 8px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             color: var(--tg-theme-button-color, #2e7dff);
+            font-weight: 500;
         }
         .back-btn span {
             font-size: 16px;
         }
-        /* Горизонтальный скролл для плиток */
         .grid-scroll {
             overflow-x: auto;
             white-space: nowrap;
@@ -93,7 +91,6 @@
             white-space: normal;
             word-break: break-word;
         }
-        /* Список товаров */
         .products-list {
             padding: 16px;
             display: flex;
@@ -149,7 +146,6 @@
             margin-top: 8px;
             cursor: pointer;
         }
-        /* Кнопка корзины (появляется только когда есть товары) */
         .cart-button {
             position: fixed;
             bottom: 20px;
@@ -182,7 +178,6 @@
             align-items: center;
             justify-content: center;
         }
-        /* Модалка корзины */
         .cart-modal {
             position: fixed;
             bottom: 0;
@@ -223,31 +218,40 @@
         .hidden {
             display: none;
         }
+        .variant-btn {
+            background: var(--tg-theme-secondary-bg-color, #e9ecef);
+            border: none;
+            padding: 8px 12px;
+            margin: 4px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .variant-btn.active {
+            background: var(--tg-theme-button-color, #2e7dff);
+            color: white;
+        }
     </style>
 </head>
 <body>
-    <!-- Витрина (фото) -->
     <div class="banner">
         <img class="banner-img" src="/Images/vitrina/vitrina.jpg" alt="Витрина" onerror="this.style.display='none'">
     </div>
 
-    <!-- Заголовок / стрелка назад -->
-    <div class="menu-header" id="menuHeader">
-        <span id="menuTitle">Главное меню</span>
+    <div class="menu-header">
         <div id="backButtonContainer" class="hidden">
-            <button id="backToCategoriesBtn" class="back-btn">← <span>Назад</span></button>
+            <button id="backBtn" class="back-btn">← <span id="backText">Главное меню</span></button>
         </div>
+        <span id="menuTitle">Главное меню</span>
     </div>
 
-    <!-- Контейнеры для категорий, брендов и товаров -->
     <div id="categoriesContainer" class="grid-scroll"></div>
     <div id="brandsContainer" class="grid-scroll hidden"></div>
     <div id="productsContainer" class="products-list"></div>
 
-    <!-- Кнопка корзины (изначально скрыта) -->
     <div id="cartButton" class="cart-button hidden">🛒<span id="cartCount" class="cart-badge">0</span></div>
 
-    <!-- Модалка корзины -->
     <div id="cartModal" class="cart-modal">
         <button class="close-cart" id="closeCart">✕</button>
         <h3>Корзина</h3>
@@ -265,15 +269,16 @@
         let brands = [];
         let products = [];
         let currentBrand = null;
+        let currentCategoryId = null;  // для возврата к брендам
         let cart = [];
 
-        // DOM элементы
         const categoriesContainer = document.getElementById('categoriesContainer');
         const brandsContainer = document.getElementById('brandsContainer');
         const productsContainer = document.getElementById('productsContainer');
         const menuTitle = document.getElementById('menuTitle');
         const backButtonContainer = document.getElementById('backButtonContainer');
-        const backToCategoriesBtn = document.getElementById('backToCategoriesBtn');
+        const backBtn = document.getElementById('backBtn');
+        const backTextSpan = document.getElementById('backText');
         const cartButton = document.getElementById('cartButton');
         const cartCountSpan = document.getElementById('cartCount');
         const cartModal = document.getElementById('cartModal');
@@ -287,7 +292,6 @@
             cartCountSpan.innerText = count;
             localStorage.setItem('cart', JSON.stringify(cart));
             renderCartModal();
-            // Показываем/скрываем кнопку корзины
             if (cart.length > 0) {
                 cartButton.classList.remove('hidden');
             } else {
@@ -323,7 +327,6 @@
             });
         }
 
-        // Загрузка категорий
         async function loadCategories() {
             const res = await fetch('/api/categories');
             categories = await res.json();
@@ -338,17 +341,17 @@
                 `;
                 categoriesContainer.appendChild(tile);
             });
-            // Показываем категории, скрываем бренды и товары
             categoriesContainer.classList.remove('hidden');
             brandsContainer.classList.add('hidden');
             productsContainer.innerHTML = '';
             menuTitle.innerText = 'Главное меню';
             backButtonContainer.classList.add('hidden');
+            currentBrand = null;
+            currentCategoryId = null;
         }
 
-        // Выбрана категория
         async function onCategorySelect(categoryId) {
-            // Загружаем бренды
+            currentCategoryId = categoryId;
             const res = await fetch(`/api/brands?category_id=${categoryId}`);
             brands = await res.json();
             brandsContainer.innerHTML = '';
@@ -362,24 +365,52 @@
                 `;
                 brandsContainer.appendChild(tile);
             });
-            // Прячем категории, показываем бренды, обновляем заголовок
             categoriesContainer.classList.add('hidden');
             brandsContainer.classList.remove('hidden');
             productsContainer.innerHTML = '';
-            menuTitle.innerText = '';
+            menuTitle.innerText = ''; // при брендах заголовок пустой
             backButtonContainer.classList.remove('hidden');
+            backTextSpan.innerText = 'Главное меню';
+            backBtn.onclick = () => loadCategories();
         }
 
-        // Выбран бренд
         async function onBrandSelect(brandId, brandName) {
             currentBrand = brandName;
             const res = await fetch(`/api/products?brand_id=${brandId}`);
             products = await res.json();
             renderProductsList();
             brandsContainer.classList.add('hidden');
-            // При показе товаров убираем кнопку назад (можно оставить, но не нужно)
-            backButtonContainer.classList.add('hidden');
-            menuTitle.innerText = `${brandName}`;
+            menuTitle.innerText = brandName;
+            backButtonContainer.classList.remove('hidden');
+            backTextSpan.innerText = `Назад к ${brandName}`;
+            backBtn.onclick = () => loadBrandsFromCurrentCategory();
+        }
+
+        async function loadBrandsFromCurrentCategory() {
+            if (!currentCategoryId) {
+                loadCategories();
+                return;
+            }
+            const res = await fetch(`/api/brands?category_id=${currentCategoryId}`);
+            brands = await res.json();
+            brandsContainer.innerHTML = '';
+            brands.forEach(b => {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.onclick = () => onBrandSelect(b.id, b.name);
+                tile.innerHTML = `
+                    <img class="tile-image" src="${b.logo || '/Images/placeholder.png'}" onerror="this.src='/Images/placeholder.png'">
+                    <div class="tile-name">${b.name}</div>
+                `;
+                brandsContainer.appendChild(tile);
+            });
+            productsContainer.innerHTML = '';
+            categoriesContainer.classList.add('hidden');
+            brandsContainer.classList.remove('hidden');
+            menuTitle.innerText = '';
+            backButtonContainer.classList.remove('hidden');
+            backTextSpan.innerText = 'Главное меню';
+            backBtn.onclick = () => loadCategories();
         }
 
         function getVariantsText(product) {
@@ -424,7 +455,6 @@
             });
         }
 
-        // Показ детальной карточки (модальное окно)
         function showProductDetail(product) {
             const variants = [];
             for (let i=1; i<=5; i++) {
@@ -464,7 +494,7 @@
 
             let variantButtonsHtml = '';
             variants.forEach((v, idx) => {
-                variantButtonsHtml += `<button class="variant-btn" data-price="${v.price}" data-unit="${v.unit}" data-idx="${idx}" style="background:#e9ecef; border:none; padding:8px 12px; margin:4px; border-radius:20px;">${v.unit}</button>`;
+                variantButtonsHtml += `<button class="variant-btn" data-price="${v.price}" data-unit="${v.unit}" data-idx="${idx}">${v.unit}</button>`;
             });
 
             modalContent.innerHTML = `
@@ -494,9 +524,8 @@
                     selectedVariant = { unit, price };
                 });
             });
-            if (modalContent.querySelector('.variant-btn')) {
-                modalContent.querySelector('.variant-btn').classList.add('active');
-            }
+            const firstBtn = modalContent.querySelector('.variant-btn');
+            if (firstBtn) firstBtn.classList.add('active');
 
             const addBtn = modalContent.querySelector('#modal-add-to-cart');
             addBtn.onclick = () => {
@@ -521,12 +550,6 @@
             closeBtn.onclick = () => modalBody.remove();
         }
 
-        // Кнопка назад: возврат к категориям
-        backToCategoriesBtn.onclick = () => {
-            loadCategories(); // перезагружаем категории, сбрасывая всё
-        };
-
-        // Корзина
         cartButton.onclick = () => {
             renderCartModal();
             cartModal.classList.add('open');
@@ -567,7 +590,6 @@
             }
         };
 
-        // Инициализация
         loadCategories();
     </script>
 </body>
