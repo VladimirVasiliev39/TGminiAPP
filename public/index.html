@@ -6,7 +6,7 @@
     <title>Витрина</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Все стили остаются без изменений, как в предыдущей версии */
+        /* Стили остаются без изменений (такие же, как в прошлой версии) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -264,7 +264,8 @@
         let products = [];
         let currentBrand = null;
         let currentCategoryId = null;
-        let currentCategoryIcon = null; // сохраняем иконку категории
+        let currentCategoryName = null;
+        let currentCategoryIcon = null;
         let cart = [];
         
         const defaultBanner = '/Images/vitrina/vitrina.jpg';
@@ -355,12 +356,14 @@
             backButtonContainer.classList.add('hidden');
             currentBrand = null;
             currentCategoryId = null;
+            currentCategoryName = null;
             currentCategoryIcon = null;
             setBanner(defaultBanner);
         }
 
         async function onCategorySelect(categoryId, categoryName, categoryIcon) {
             currentCategoryId = categoryId;
+            currentCategoryName = categoryName;
             currentCategoryIcon = categoryIcon;
             // Меняем витрину на иконку категории
             if (categoryIcon) {
@@ -387,7 +390,7 @@
             productsContainer.innerHTML = '';
             menuTitle.innerText = ''; // при брендах заголовок пустой
             backButtonContainer.classList.remove('hidden');
-            backTextSpan.innerText = 'Главное меню';
+            backTextSpan.innerText = categoryName; // ← Имя категории
             backBtn.onclick = () => loadCategories(); // возврат к категориям
         }
 
@@ -406,7 +409,7 @@
             brandsContainer.classList.add('hidden');
             menuTitle.innerText = ''; // заголовок справа пустой
             backButtonContainer.classList.remove('hidden');
-            backTextSpan.innerText = brandName; // только имя бренда без "Назад"
+            backTextSpan.innerText = brandName; // ← Имя бренда
             backBtn.onclick = () => loadBrandsFromCurrentCategory();
         }
 
@@ -440,8 +443,8 @@
             brandsContainer.classList.remove('hidden');
             menuTitle.innerText = '';
             backButtonContainer.classList.remove('hidden');
-            backTextSpan.innerText = 'Главное меню';
-            backBtn.onclick = () => loadCategories();
+            backTextSpan.innerText = currentCategoryName; // ← Имя категории
+            backBtn.onclick = () => loadCategories(); // возврат к категориям
         }
 
         function getVariantsText(product) {
